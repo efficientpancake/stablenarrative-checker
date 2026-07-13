@@ -65,7 +65,11 @@ async function callClaude(input: string): Promise<CheckResult> {
     },
     body: JSON.stringify({
       model: "claude-sonnet-5",
-      max_tokens: 2000,
+      // Ceiling, not a spend — billed on actual output tokens, so headroom is
+      // free. 16000 is the safe max for a non-streaming request (above ~16K
+      // risks an HTTP timeout and would need streaming). Plenty for a tweet
+      // check + full compliant rewrite.
+      max_tokens: 16000,
       // A compliance check is a fast, structured JSON extraction — no chain-of-
       // thought needed. Disabling thinking keeps the response a single text
       // block (on Sonnet 5, adaptive thinking is ON by default and would make
