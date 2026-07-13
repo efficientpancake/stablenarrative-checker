@@ -8,48 +8,96 @@ import ThemeToggle from "./components/ThemeToggle";
 const EXAMPLE = `Own uranium on-chain with xU3O8. A safe, guaranteed store of value backed by real assets.
 Don't miss out — get in before the next bull run.`;
 
-const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+const MAX_FILE_BYTES = 4 * 1024 * 1024; // 4 MB (stays under Netlify's request limit after base64)
 
-/** Read a File as base64 (without the data: prefix) for the API. */
+const ACCEPT =
+  "image/png,image/jpeg,image/gif,image/webp,application/pdf,.pdf," +
+  ".txt,text/plain,.docx," +
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+type FileKind = "image" | "pdf" | "docx" | "txt";
+
+/** A file the client sends to the API (image/pdf/docx). TXT is folded into copy. */
+interface Attachment {
+  kind: "image" | "pdf" | "docx";
+  data: string; // base64, no data: prefix
+  mediaType?: string;
+  name: string;
+  previewUrl?: string; // images only
+}
+
+function classify(file: File): FileKind | null {
+  const t = file.type;
+  const name = file.name.toLowerCase();
+  if (IMAGE_TYPES.includes(t) || /\.(png|jpe?g|gif|webp)$/.test(name)) return "image";
+  if (t === "application/pdf" || name.endsWith(".pdf")) return "pdf";
+  if (name.endsWith(".docx") || t.includes("wordprocessingml")) return "docx";
+  if (t === "text/plain" || name.endsWith(".txt")) return "txt";
+  return null;
+}
+
+function imageMediaType(file: File): string {
+  if (IMAGE_TYPES.includes(file.type)) return file.type;
+  const name = file.name.toLowerCase();
+  if (name.endsWith(".png")) return "image/png";
+  if (name.endsWith(".gif")) return "image/gif";
+  if (name.endsWith(".webp")) return "image/webp";
+  return "image/jpeg";
+}
+
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve((reader.result as string).split(",")[1] ?? "");
-    reader.onerror = () => reject(new Error("Could not read the image file"));
+    reader.onerror = () => reject(new Error("Could not read the file"));
     reader.readAsDataURL(file);
   });
 }
 
 export default function Home() {
   const [copy, setCopy] = useState("");
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [attachment, setAttachment] = useState<Attachment | null>(null);
   const [result, setResult] = useState<CheckResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
-  function onPickImage(e: React.ChangeEvent<HTMLInputElement>) {
+  async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-      setError("Unsupported image type — use PNG, JPG, GIF, or WebP.");
+    const kind = classify(file);
+    if (!kind) {
+      setError("Unsupported file. Use an image, PDF, Word (.docx), or text (.txt) file.");
       return;
     }
-    if (file.size > MAX_IMAGE_BYTES) {
-      setError("Image is too large — please keep it under 5 MB.");
+    if (file.size > MAX_FILE_BYTES) {
+      setError("File is too large — please keep it under 4 MB.");
       return;
     }
     setError(null);
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+
+    // TXT: read the text right here and drop it into the copy box (visible + editable).
+    if (kind === "txt") {
+      const text = await file.text();
+      setCopy((prev) => (prev.trim() ? `${prev}\n\n${text}` : text));
+      if (fileInput.current) fileInput.current.value = "";
+      return;
+    }
+
+    const data = await fileToBase64(file);
+    setAttachment({
+      kind,
+      data,
+      name: file.name,
+      mediaType: kind === "image" ? imageMediaType(file) : undefined,
+      previewUrl: kind === "image" ? URL.createObjectURL(file) : undefined,
+    });
   }
 
-  function clearImage() {
-    setImageFile(null);
-    if (imagePreview) URL.revokeObjectURL(imagePreview);
-    setImagePreview(null);
+  function clearAttachment() {
+    if (attachment?.previewUrl) URL.revokeObjectURL(attachment.previewUrl);
+    setAttachment(null);
     if (fileInput.current) fileInput.current.value = "";
   }
 
@@ -58,13 +106,13 @@ export default function Home() {
     setError(null);
     setResult(null);
     try {
-      const image = imageFile
-        ? { data: await fileToBase64(imageFile), mediaType: imageFile.type }
+      const file = attachment
+        ? { kind: attachment.kind, data: attachment.data, mediaType: attachment.mediaType }
         : undefined;
       const res = await fetch("/api/check", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ copy, image }),
+        body: JSON.stringify({ copy, file }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Check failed");
@@ -76,7 +124,8 @@ export default function Home() {
     }
   }
 
-  const canCheck = copy.trim().length > 0 || imageFile !== null;
+  const canCheck = copy.trim().length > 0 || attachment !== null;
+  const isVisual = attachment?.kind === "image" || attachment?.kind === "pdf";
 
   return (
     <main className="wrap">
@@ -88,11 +137,11 @@ export default function Home() {
         </div>
         <h1>FCA compliance check for UK crypto marketing copy</h1>
         <p className="sub">
-          Paste your copy or upload the promotion image. It gets checked against
-          FCA financial-promotion rules — prohibited content, missing required
-          elements, visual prominence of the risk warning, and a compliant
-          rewrite — before it reaches your s21 approver. This tool pre-cleans;
-          the human approver always signs off.
+          Paste your copy or upload the promotion — image, PDF, Word, or text.
+          It gets checked against FCA financial-promotion rules — prohibited
+          content, missing required elements, visual prominence of the risk
+          warning, and a compliant rewrite — before it reaches your s21
+          approver. This tool pre-cleans; the human approver always signs off.
         </p>
       </header>
 
@@ -113,7 +162,7 @@ export default function Home() {
               id="copy"
               value={copy}
               onChange={(e) => setCopy(e.target.value)}
-              placeholder="Paste the tweet, landing-page hero, ad, or CTA here…"
+              placeholder="Paste the tweet, landing-page hero, ad, or CTA here — or attach a file below…"
               rows={10}
             />
 
@@ -121,17 +170,17 @@ export default function Home() {
               <input
                 ref={fileInput}
                 type="file"
-                accept="image/png,image/jpeg,image/gif,image/webp"
-                onChange={onPickImage}
+                accept={ACCEPT}
+                onChange={onPickFile}
                 style={{ display: "none" }}
               />
-              {!imageFile ? (
+              {!attachment ? (
                 <button
                   type="button"
                   className="ghost"
                   onClick={() => fileInput.current?.click()}
                 >
-                  + Upload promotion image
+                  + Attach file (image, PDF, Word, or text)
                 </button>
               ) : (
                 <div
@@ -143,29 +192,51 @@ export default function Home() {
                     marginTop: "0.5rem",
                   }}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={imagePreview ?? ""}
-                    alt="Promotion preview"
-                    style={{
-                      height: 56,
-                      width: 56,
-                      objectFit: "cover",
-                      borderRadius: 8,
-                      border: "1px solid var(--border, #ccc)",
-                    }}
-                  />
+                  {attachment.previewUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={attachment.previewUrl}
+                      alt="Promotion preview"
+                      style={{
+                        height: 56,
+                        width: 56,
+                        objectFit: "cover",
+                        borderRadius: 8,
+                        border: "1px solid var(--border, #ccc)",
+                      }}
+                    />
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        height: 56,
+                        width: 56,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderRadius: 8,
+                        border: "1px solid var(--border, #ccc)",
+                        fontSize: 11,
+                        fontWeight: 600,
+                        letterSpacing: "0.05em",
+                        opacity: 0.8,
+                      }}
+                    >
+                      {attachment.kind.toUpperCase()}
+                    </span>
+                  )}
                   <span className="hint" style={{ flex: 1, minWidth: 0 }}>
-                    {imageFile.name}
+                    {attachment.name}
                   </span>
-                  <button type="button" className="ghost" onClick={clearImage}>
+                  <button type="button" className="ghost" onClick={clearAttachment}>
                     Remove
                   </button>
                 </div>
               )}
               <p className="hint" style={{ marginTop: "0.4rem" }}>
-                Checking an image also assesses whether the risk warning is
-                prominent — not just present.
+                {isVisual
+                  ? "Images and PDFs are also checked for whether the risk warning is prominent — not just present."
+                  : "Word and text files are read as copy; images and PDFs also get a visual-prominence check."}
               </p>
             </div>
 
@@ -210,11 +281,11 @@ export default function Home() {
             <li className="info-item">
               <span className="info-marker marker-warning" aria-hidden="true" />
               <div>
-                <p className="info-item-title">Visual prominence (images)</p>
+                <p className="info-item-title">Visual prominence (images &amp; PDFs)</p>
                 <p className="info-item-desc">
-                  When you upload an image, it also checks the risk warning is
-                  actually prominent — legible, sized, and not buried in tiny
-                  grey text (COBS 4.12A.11R).
+                  When you upload an image or a designed PDF, it also checks the
+                  risk warning is actually prominent — legible, sized, and not
+                  buried in tiny grey text (COBS 4.12A.11R).
                 </p>
               </div>
             </li>
