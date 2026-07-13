@@ -1,0 +1,6 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+# Netlify auto-installs @netlify/plugin-nextjs, which turns the
+# /api/check route into a serverless function and serves the app.

@@ -1,0 +1,650 @@
+/* ============================================================
+   DESIGN TOKENS — the single source of truth for color.
+   No raw hex anywhere below the theme blocks; every rule reads a var.
+   Tints/glows are derived with color-mix() so they stay in-system.
+
+   Theming: dark is the default. Light applies when the user picks it
+   (html[data-theme="light"]) OR when their OS prefers light and they
+   haven't chosen (handled in the @media block below). Only the token
+   VALUES change per theme — no rule below cares which theme is active.
+   ============================================================ */
+:root,
+:root[data-theme="dark"] {
+  /* Surfaces — layered, each step visibly lighter than the last.
+     The input sits clearly above the card so the text box reads as a distinct
+     surface, not a hole in the background. */
+  --bg-page: #0a0a0f;
+  --bg-card: #14151c;
+  --bg-input: #2a3040;
+
+  /* Borders */
+  --border-default: #22242e;
+  --border-strong: #2a2d38;
+
+  /* Text — three explicit levels, per theme. Placeholder is its own token,
+     NOT a reuse of --text-secondary, so hint text tunes independently. */
+  --text-primary: #f2f2f5;
+  --text-secondary: #9a9ca8;
+  --text-placeholder: #868997;
+
+  /* Brand accent — the ONLY decorative color in the app */
+  --accent: #5865f2;
+  --accent-text: #ffffff;
+
+  /* Status — used ONLY to communicate state, never decoration.
+     error = a breach, warning = a caution/absence, success = clean. */
+  --status-error: #ff6b6b;
+  --status-warning: #ffb454;
+  --status-success: #5ddba0;
+
+  /* Primitives */
+  --shadow: 0 10px 30px -14px rgba(0, 0, 0, 0.7);
+  --radius: 14px;
+}
+
+/* LIGHT THEME token values. Same names, same meanings, lighter surfaces.
+   Status colors are darkened so pill text / borders keep contrast on white. */
+:root[data-theme="light"] {
+  --bg-page: #e9ebf0;
+  --bg-card: #ffffff;
+  --bg-input: #e6e8ef;
+  --border-default: #e0e2ea;
+  --border-strong: #ccd0da;
+  --text-primary: #1a1a1f;
+  --text-secondary: #52545c;
+  --text-placeholder: #8a8c94;
+  --accent: #5865f2;
+  --accent-text: #ffffff;
+  --status-error: #d92d2d;
+  --status-warning: #b45309;
+  --status-success: #1a8f5a;
+  --shadow: 0 10px 30px -16px rgba(20, 22, 40, 0.18);
+}
+
+/* Follow the OS when the user hasn't explicitly chosen a theme. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --bg-page: #e9ebf0;
+    --bg-card: #ffffff;
+    --bg-input: #e6e8ef;
+    --border-default: #e0e2ea;
+    --border-strong: #ccd0da;
+    --text-primary: #1a1a1f;
+    --text-secondary: #52545c;
+    --text-placeholder: #8a8c94;
+    --accent: #5865f2;
+    --accent-text: #ffffff;
+    --status-error: #d92d2d;
+    --status-warning: #b45309;
+    --status-success: #1a8f5a;
+    --shadow: 0 10px 30px -16px rgba(20, 22, 40, 0.18);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-page);
+  color: var(--text-primary);
+  font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Content column — wide enough to run a two-column workspace on desktop,
+   still centered so it reads as one focused tool, not an app shell. */
+.wrap {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 80px 32px 120px;
+}
+
+/* ── Header ─────────────────────────────────────────────── */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.01em;
+  margin-bottom: 40px;
+}
+.brand-name {
+  color: var(--accent);
+}
+/* Neutral label, not a status — reads as metadata, not a warning */
+.badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-strong);
+}
+/* Theme toggle — a labeled ghost pill (inherits .ghost), pushed to the right.
+   Icon + word name the destination mode, so its purpose is obvious. */
+.theme-toggle {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.theme-toggle-icon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.head h1 {
+  font-size: 32px;
+  line-height: 1.15;
+  margin: 0 0 14px;
+  letter-spacing: -0.025em;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.sub {
+  color: var(--text-secondary);
+  margin: 0;
+  font-size: 15.5px;
+  max-width: 64ch;
+}
+
+/* ── Workspace: input (left, ~60%) + persistent info panel (right, ~40%) ── */
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  margin-top: 36px;
+}
+
+/* ── Editor ─────────────────────────────────────────────── */
+.panel {
+  min-width: 0;
+}
+.editor {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius);
+  padding: 18px;
+  box-shadow: var(--shadow);
+}
+.editor-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+.editor-top label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+/* Input sits lighter than its parent card AND carries a strong border */
+textarea {
+  width: 100%;
+  resize: vertical;
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  color: var(--text-primary);
+  padding: 15px;
+  font-size: 15px;
+  font-family: inherit;
+  line-height: 1.65;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+textarea::placeholder {
+  color: var(--text-placeholder);
+}
+textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 24%, transparent);
+}
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+.hint {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* ── Info panel (right column) — always-visible "what this checks" ──
+   Sticky so it stays in view while the left column scrolls. Its three
+   markers mirror the result sections' status colors for a visual through-line. */
+.info {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius);
+  padding: 22px 22px 20px;
+  box-shadow: var(--shadow);
+  position: sticky;
+  top: 32px;
+}
+.info-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  font-weight: 700;
+  margin: 0 0 18px;
+}
+.info-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.info-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.info-marker {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+.marker-error {
+  background: var(--status-error);
+}
+.marker-warning {
+  background: var(--status-warning);
+}
+.marker-success {
+  background: var(--status-success);
+}
+.info-item-title {
+  margin: 0 0 3px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.info-item-desc {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+.info-note {
+  margin: 20px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-default);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+}
+/* Show a focus ring only for keyboard users — not a stuck ring after a click */
+button:focus {
+  outline: none;
+}
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Primary — the single accent-filled action per screen.
+   Enabled text is #ffffff on --accent #5865f2 = 4.61:1 (passes WCAG AA for
+   normal text, both themes — accent is identical in light/dark). */
+button.primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  background: var(--accent);
+  color: var(--accent-text); /* full-strength white when enabled */
+  opacity: 1;
+  border: none;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 11px 22px;
+  border-radius: 10px;
+  box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--accent) 55%, transparent);
+  transition: transform 0.12s, box-shadow 0.12s, filter 0.12s, opacity 0.12s;
+}
+button.primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+  box-shadow: 0 10px 24px -6px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+button.primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+/* Disabled: drop the indigo entirely for a flat neutral surface with muted
+   text, so the whole button reads as one inactive unit — never a vivid bg
+   with only the text grayed out. Text stays legible: --text-secondary on
+   --border-strong = 5.03:1 (dark) / 4.90:1 (light), just quieter than the
+   bold-white-on-indigo enabled state. */
+button.primary:disabled {
+  background: var(--border-strong);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Secondary / ghost — transparent, bordered. Every non-primary action. */
+button.ghost {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 999px;
+  transition: color 0.12s, border-color 0.12s;
+}
+button.ghost:hover {
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
+.spinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid color-mix(in srgb, var(--accent-text) 35%, transparent);
+  border-top-color: var(--accent-text);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.error {
+  margin-top: 24px;
+  padding: 14px 16px;
+  background: color-mix(in srgb, var(--status-error) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--status-error) 35%, transparent);
+  border-radius: 10px;
+  color: var(--status-error);
+}
+
+/* ── Results ────────────────────────────────────────────── */
+.results {
+  margin-top: 34px;
+  animation: rise 0.35s ease both;
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.verdict {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 18px 20px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-default);
+  background: var(--bg-card);
+  margin-bottom: 26px;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+.verdict::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+}
+.verdict .dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.verdict-text {
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+.verdict-count {
+  margin-left: auto;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.verdict-non_compliant::before {
+  background: var(--status-error);
+}
+.verdict-non_compliant .dot {
+  background: var(--status-error);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--status-error) 16%, transparent);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--status-error) 16%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 7px color-mix(in srgb, var(--status-error) 6%, transparent);
+  }
+}
+.verdict-compliant::before {
+  background: var(--status-success);
+}
+.verdict-compliant .dot {
+  background: var(--status-success);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--status-success) 16%, transparent);
+}
+.verdict-needs_review::before {
+  background: var(--status-warning);
+}
+.verdict-needs_review .dot {
+  background: var(--status-warning);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--status-warning) 16%, transparent);
+}
+
+.col {
+  margin-bottom: 30px;
+}
+.col h2 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+  font-weight: 700;
+}
+.tag {
+  font-size: 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  padding: 1px 9px;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.empty {
+  color: var(--text-secondary);
+  margin: 0;
+  padding: 14px 16px;
+  background: var(--bg-card);
+  border: 1px dashed var(--border-strong);
+  border-radius: 10px;
+  font-size: 14px;
+}
+.empty::before {
+  content: "✓ ";
+  color: var(--status-success);
+  font-weight: 700;
+}
+
+.cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+/* Cards sit lighter than the page; a status-colored left edge signals severity */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-left: 3px solid var(--border-strong);
+  border-radius: 12px;
+  padding: 15px 17px;
+  transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s;
+}
+.card:hover {
+  transform: translateX(2px);
+  box-shadow: var(--shadow);
+}
+.card.sev-high {
+  border-left-color: var(--status-error);
+}
+.card.sev-medium {
+  border-left-color: var(--status-warning);
+}
+.card.sev-low {
+  border-left-color: var(--border-strong); /* minor — neutral, no status color */
+}
+.card.sev-missing {
+  border-left-color: var(--status-warning); /* required element absent = caution */
+}
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 11px;
+  flex-wrap: wrap;
+}
+.rule {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.rule.strong {
+  color: var(--text-primary);
+  font-size: 15px;
+}
+.pill {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+.pill-high {
+  background: color-mix(in srgb, var(--status-error) 16%, transparent);
+  color: var(--status-error);
+}
+.pill-medium {
+  background: color-mix(in srgb, var(--status-warning) 16%, transparent);
+  color: var(--status-warning);
+}
+.pill-low {
+  background: var(--bg-input);
+  color: var(--text-secondary);
+}
+/* Inset quote — darker than the card so it reads as recessed */
+blockquote {
+  margin: 0 0 9px;
+  padding: 10px 14px;
+  background: var(--bg-page);
+  border-radius: 8px;
+  font-style: italic;
+  color: var(--text-primary);
+  border-left: 2px solid var(--border-strong);
+}
+.issue {
+  margin: 0 0 5px;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+.issue:last-child {
+  margin-bottom: 0;
+}
+.issue strong {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+/* ── Rewrite ────────────────────────────────────────────── */
+.rewrite {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  padding: 18px 20px;
+  white-space: pre-wrap;
+  font-size: 15px;
+  line-height: 1.7;
+  box-shadow: var(--shadow);
+}
+.copy-btn.copied {
+  color: var(--status-success);
+  border-color: color-mix(in srgb, var(--status-success) 40%, transparent);
+}
+
+/* ── Footer ─────────────────────────────────────────────── */
+.foot {
+  margin-top: 52px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* Collapse to a single column: the info panel drops below the editor and
+   stops being sticky, so it reads as a footer note on narrow screens. */
+@media (max-width: 860px) {
+  .workspace {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .info {
+    position: static;
+    top: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .wrap {
+    padding: 52px 18px 80px;
+  }
+  .head h1 {
+    font-size: 26px;
+  }
+}
