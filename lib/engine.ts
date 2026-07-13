@@ -33,7 +33,7 @@ const STUB_SCAN_WORDS = [
 ] as const;
 
 // ── The switch. Flip to false once ANTHROPIC_API_KEY is set. ────────────────
-const USE_STUB = true;
+const USE_STUB = false;
 
 export async function runCheck(input: string): Promise<CheckResult> {
   const text = input.trim();
@@ -66,6 +66,12 @@ async function callClaude(input: string): Promise<CheckResult> {
     body: JSON.stringify({
       model: "claude-sonnet-5",
       max_tokens: 2000,
+      // A compliance check is a fast, structured JSON extraction — no chain-of-
+      // thought needed. Disabling thinking keeps the response a single text
+      // block (on Sonnet 5, adaptive thinking is ON by default and would make
+      // the first content block a thinking block, breaking the parse below) and
+      // avoids paying for thinking tokens on every check.
+      thinking: { type: "disabled" },
       system: SYSTEM_PROMPT,
       messages: [
         {
@@ -81,9 +87,18 @@ async function callClaude(input: string): Promise<CheckResult> {
   }
 
   const data = await res.json();
-  const raw: string = data?.content?.[0]?.text ?? "";
-  const jsonStr = raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1);
-  const parsed = JSON.parse(jsonStr) as CheckResult;
+  // Pull the first text block rather than assuming content[0] — the response
+  // may carry non-text blocks first depending on model settings.
+  const raw: string =
+    (Array.isArray(data?.content)
+      ? data.content.find((b: { type?: string }) => b?.type === "text")?.text
+      : undefined) ?? "";
+  const start = raw.indexOf("{");
+  const end = raw.lastIndexOf("}");
+  if (start === -1 || end === -1) {
+    throw new Error(`Model did not return JSON. Raw response: ${raw.slice(0, 200)}`);
+  }
+  const parsed = JSON.parse(raw.slice(start, end + 1)) as CheckResult;
   return parsed;
 }
 
