@@ -1,9 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CheckResult } from "@/lib/types";
 import Results from "./components/Results";
 import ThemeToggle from "./components/ThemeToggle";
+
+const STORAGE_KEY = "sn_access_code";
 
 const EXAMPLE = `Own uranium on-chain with xU3O8. A safe, guaranteed store of value backed by real assets.
 Don't miss out — get in before the next bull run.`;
@@ -63,6 +65,61 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
+  // Access gate. null = still checking; true = unlocked (or app is ungated);
+  // false = show the code screen.
+  const [unlocked, setUnlocked] = useState<boolean | null>(null);
+  const [gateInput, setGateInput] = useState("");
+  const [gateError, setGateError] = useState<string | null>(null);
+  const [gateBusy, setGateBusy] = useState(false);
+
+  // On load, validate any stored code (spends no API tokens). If the app is
+  // ungated, the probe returns ok and we unlock immediately.
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    (async () => {
+      try {
+        const res = await fetch("/api/auth", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ code: stored }),
+        });
+        const data = await res.json();
+        setUnlocked(data.ok === true);
+      } catch {
+        setUnlocked(false);
+      }
+    })();
+  }, []);
+
+  async function submitGate(e: React.FormEvent) {
+    e.preventDefault();
+    setGateBusy(true);
+    setGateError(null);
+    try {
+      const code = gateInput.trim();
+      const res = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        localStorage.setItem(STORAGE_KEY, code);
+        setUnlocked(true);
+      } else {
+        setGateError(
+          data.reason === "invalid"
+            ? "That access code isn't valid."
+            : "Please enter your access code."
+        );
+      }
+    } catch {
+      setGateError("Something went wrong — please try again.");
+    } finally {
+      setGateBusy(false);
+    }
+  }
+
   async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -111,10 +168,19 @@ export default function Home() {
         : undefined;
       const res = await fetch("/api/check", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          "x-access-code": localStorage.getItem(STORAGE_KEY) ?? "",
+        },
         body: JSON.stringify({ copy, file }),
       });
       const data = await res.json();
+      if (res.status === 401) {
+        // Code no longer valid (e.g. rotated) — send them back to the gate.
+        localStorage.removeItem(STORAGE_KEY);
+        setUnlocked(false);
+        throw new Error("Please re-enter your access code.");
+      }
       if (!res.ok) throw new Error(data.error || "Check failed");
       setResult(data as CheckResult);
     } catch (e) {
@@ -126,6 +192,68 @@ export default function Home() {
 
   const canCheck = copy.trim().length > 0 || attachment !== null;
   const isVisual = attachment?.kind === "image" || attachment?.kind === "pdf";
+
+  if (unlocked === null) {
+    return (
+      <main className="wrap">
+        <p className="sub" style={{ marginTop: "18vh", textAlign: "center" }}>
+          Loading…
+        </p>
+      </main>
+    );
+  }
+
+  if (!unlocked) {
+    return (
+      <main className="wrap">
+        <header className="head">
+          <div className="brand">
+            <span className="brand-name">StableNarrative</span>
+            <span className="badge">LIVE</span>
+            <ThemeToggle />
+          </div>
+          <h1>Enter your access code</h1>
+          <p className="sub">
+            This checker is private. Enter the access code you were given to
+            continue — you’ll only need to do this once on this device.
+          </p>
+        </header>
+        <section className="panel" style={{ maxWidth: 440 }}>
+          <form onSubmit={submitGate} className="editor">
+            <input
+              type="text"
+              value={gateInput}
+              onChange={(e) => setGateInput(e.target.value)}
+              placeholder="Access code"
+              autoFocus
+              autoComplete="off"
+              style={{
+                width: "100%",
+                padding: "0.7rem 0.85rem",
+                borderRadius: 10,
+                border: "1px solid var(--border, #ccc)",
+                background: "transparent",
+                color: "inherit",
+                fontSize: "1rem",
+                fontFamily: "inherit",
+              }}
+            />
+            <div className="actions">
+              <button
+                className="primary"
+                type="submit"
+                disabled={gateBusy || !gateInput.trim()}
+              >
+                {gateBusy && <span className="spinner" />}
+                {gateBusy ? "Checking…" : "Continue"}
+              </button>
+            </div>
+            {gateError && <div className="error">{gateError}</div>}
+          </form>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="wrap">

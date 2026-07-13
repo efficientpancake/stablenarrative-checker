@@ -45,7 +45,8 @@ export type Attachment =
 
 export async function runCheck(
   input: string,
-  attachment?: Attachment
+  attachment?: Attachment,
+  apiKey?: string
 ): Promise<CheckResult> {
   const text = input.trim();
   // Only short-circuit when there is genuinely nothing to check — an attachment
@@ -59,16 +60,20 @@ export async function runCheck(
     };
   }
   // The stub is text-only and can't see attachments; the live engine handles both.
-  return USE_STUB ? stubEngine(text) : callClaude(text, attachment);
+  return USE_STUB ? stubEngine(text) : callClaude(text, attachment, apiKey);
 }
 
 // ============================================================================
 // REAL ENGINE — one structured Claude call (approach A). Not active yet.
 // This is the entire "swap in the real API" surface.
 // ============================================================================
-async function callClaude(input: string, attachment?: Attachment): Promise<CheckResult> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set");
+async function callClaude(
+  input: string,
+  attachment: Attachment | undefined,
+  apiKey?: string
+): Promise<CheckResult> {
+  const key = apiKey ?? process.env.ANTHROPIC_API_KEY;
+  if (!key) throw new Error("No Anthropic API key available");
 
   // Build the user turn. With a visual attachment (image or PDF), ask the model
   // to read the text FROM it and also judge visual prominence (the v2 check).
@@ -102,7 +107,7 @@ async function callClaude(input: string, attachment?: Attachment): Promise<Check
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "x-api-key": apiKey,
+      "x-api-key": key,
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({

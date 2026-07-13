@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import mammoth from "mammoth";
 import { runCheck, Attachment } from "@/lib/engine";
+import { resolveAccess } from "@/lib/access";
 
 export const runtime = "nodejs";
 
@@ -13,6 +14,20 @@ function bad(error: string) {
 
 export async function POST(req: NextRequest) {
   try {
+    // Gate first: the access code (sent as a header) picks this tester's API
+    // key. When gated, a missing/wrong code is rejected — never silently run on
+    // a default key, so every check is attributed to exactly one tester.
+    const access = resolveAccess(req.headers.get("x-access-code"));
+    if (access.gated && access.reason) {
+      return NextResponse.json({ error: "Access code required." }, { status: 401 });
+    }
+    if (!access.key) {
+      return NextResponse.json(
+        { error: "Server is missing its API key configuration." },
+        { status: 500 }
+      );
+    }
+
     const body = await req.json();
     let copy = typeof body.copy === "string" ? body.copy : "";
 
@@ -49,7 +64,7 @@ export async function POST(req: NextRequest) {
       return bad("Provide marketing copy, a file, or both.");
     }
 
-    const result = await runCheck(copy, attachment);
+    const result = await runCheck(copy, attachment, access.key);
     return NextResponse.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
