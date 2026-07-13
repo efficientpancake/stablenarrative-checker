@@ -35,9 +35,20 @@ const STUB_SCAN_WORDS = [
 // ── The switch. Flip to false once ANTHROPIC_API_KEY is set. ────────────────
 const USE_STUB = false;
 
-export async function runCheck(input: string): Promise<CheckResult> {
+// An uploaded promotion image (base64, no data: prefix) + its MIME type.
+export interface ImageInput {
+  data: string;
+  mediaType: string;
+}
+
+export async function runCheck(
+  input: string,
+  image?: ImageInput
+): Promise<CheckResult> {
   const text = input.trim();
-  if (!text) {
+  // Only short-circuit when there is genuinely nothing to check — an image with
+  // no pasted text is still a valid promotion to assess.
+  if (!text && !image) {
     return {
       overall_verdict: "compliant",
       flags: [],
@@ -45,16 +56,37 @@ export async function runCheck(input: string): Promise<CheckResult> {
       compliant_rewrite: "",
     };
   }
-  return USE_STUB ? stubEngine(text) : callClaude(text);
+  // The stub is text-only and can't see images; the live engine handles both.
+  return USE_STUB ? stubEngine(text) : callClaude(text, image);
 }
 
 // ============================================================================
 // REAL ENGINE — one structured Claude call (approach A). Not active yet.
 // This is the entire "swap in the real API" surface.
 // ============================================================================
-async function callClaude(input: string): Promise<CheckResult> {
+async function callClaude(input: string, image?: ImageInput): Promise<CheckResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set");
+
+  // Build the user turn. With an image, ask the model to read the text FROM the
+  // image and also judge visual prominence of required elements (the v2 check).
+  const promptText = image
+    ? `Check this UK crypto marketing promotion for FCA financial-promotion compliance. The promotion is the ATTACHED IMAGE. Read ALL text visible in the image, assess it against the rules, AND assess the VISUAL PROMINENCE of required elements (risk-warning size, placement, contrast, legibility).${
+        input
+          ? `\n\nThe advertiser also supplied this caption/copy alongside the image — treat it as part of the same promotion:\n---\n${input}\n---`
+          : ""
+      }\n\nReturn ONLY the JSON.`
+    : `Check this UK crypto marketing copy for FCA financial-promotion compliance. Return ONLY the JSON.\n\n---\n${input}\n---`;
+
+  const userContent = image
+    ? [
+        {
+          type: "image",
+          source: { type: "base64", media_type: image.mediaType, data: image.data },
+        },
+        { type: "text", text: promptText },
+      ]
+    : promptText;
 
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -80,7 +112,7 @@ async function callClaude(input: string): Promise<CheckResult> {
       messages: [
         {
           role: "user",
-          content: `Check this UK crypto marketing copy for FCA financial-promotion compliance. Return ONLY the JSON.\n\n---\n${input}\n---`,
+          content: userContent,
         },
       ],
     }),
