@@ -63,13 +63,19 @@ export default function Support() {
   const [env, setEnv] = useState("");
 
   useEffect(() => {
-    setEnv(readEnv());
+    // Re-read on resize: the string includes the viewport, and a report should
+    // describe the window the tester is actually looking at, not the one they
+    // happened to land on. It's also what the disclosure line below promises.
+    const sync = () => setEnv(readEnv());
+    sync();
+    window.addEventListener("resize", sync);
     try {
       // The LABEL (user1), never the access code itself.
       setTester(localStorage.getItem(LABEL_KEY) || "not signed in");
     } catch {
       setTester("unknown");
     }
+    return () => window.removeEventListener("resize", sync);
   }, []);
 
   const canSend = what.trim().length > 0 && !sending;

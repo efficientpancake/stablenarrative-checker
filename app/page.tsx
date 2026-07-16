@@ -235,25 +235,16 @@ export default function Home() {
             continue — you’ll only need to do this once on this device.
           </p>
         </header>
-        <section className="panel" style={{ maxWidth: 440 }}>
+        <section className="panel gate-panel">
           <form onSubmit={submitGate} className="editor">
             <input
               type="text"
+              className="field-input"
               value={gateInput}
               onChange={(e) => setGateInput(e.target.value)}
               placeholder="Access code"
               autoFocus
               autoComplete="off"
-              style={{
-                width: "100%",
-                padding: "0.7rem 0.85rem",
-                borderRadius: 10,
-                border: "1px solid var(--border, #ccc)",
-                background: "transparent",
-                color: "inherit",
-                fontSize: "1rem",
-                fontFamily: "inherit",
-              }}
             />
             <div className="actions">
               <button

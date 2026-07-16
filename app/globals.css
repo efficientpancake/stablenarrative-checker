@@ -898,10 +898,16 @@ blockquote {
 /* ── Support page ───────────────────────────────────────────
    Reuses .wrap/.panel/.actions/button from above; only the form's own
    rhythm and the email-fallback row are defined here. */
-/* The header sets its own bottom margin via .workspace on the main page; this
-   page has no workspace grid, so the panel supplies the same gap itself. */
-.support-panel {
+/* The header sets its own bottom margin via .workspace on the main page; these
+   pages have no workspace grid, so the panel supplies the same gap itself. */
+.support-panel,
+.gate-panel {
   margin-top: 28px;
+}
+
+/* The access code is a short string — a full-width box would overstate it. */
+.gate-panel {
+  max-width: 440px;
 }
 
 .support-form {
@@ -931,8 +937,7 @@ blockquote {
   letter-spacing: 0.04em;
 }
 
-/* Shared single-line control. The gate input predates this and still styles
-   itself inline — worth folding in here later. */
+/* Shared single-line control — the access-code box and the support fields. */
 .field-input {
   width: 100%;
   padding: 0.7rem 0.85rem;
