@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { CheckResult } from "@/lib/types";
+import { recordCheck, resetSession } from "@/lib/usageLog";
 import Results from "./components/Results";
+import UsagePanel from "./components/UsagePanel";
 import ThemeToggle from "./components/ThemeToggle";
 
 const STORAGE_KEY = "sn_access_code";
@@ -71,6 +73,8 @@ export default function Home() {
   const [checkedPromotion, setCheckedPromotion] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Bumped after each recorded check so the usage panel re-reads the log.
+  const [usageTick, setUsageTick] = useState(0);
   const fileInput = useRef<HTMLInputElement>(null);
 
   // Access gate. null = still checking; true = unlocked (or app is ungated);
@@ -168,6 +172,18 @@ export default function Home() {
     if (fileInput.current) fileInput.current.value = "";
   }
 
+  // Start a genuinely new piece of copy: clear the workspace and close the
+  // current usage session so the next check is logged as round 1 of a new
+  // piece (tweaking existing copy in place stays the same session).
+  function startNewCopy() {
+    setCopy("");
+    clearAttachment();
+    setResult(null);
+    setError(null);
+    setCheckedPromotion("");
+    resetSession();
+  }
+
   async function check() {
     setLoading(true);
     setError(null);
@@ -192,7 +208,8 @@ export default function Home() {
         throw new Error("Please re-enter your access code.");
       }
       if (!res.ok) throw new Error(data.error || "Check failed");
-      setResult(data as CheckResult);
+      const checked = data as CheckResult;
+      setResult(checked);
       setCheckedPromotion(
         copy.trim()
           ? copy.trim()
@@ -200,6 +217,15 @@ export default function Home() {
           ? `[Attached ${attachment.kind}: ${attachment.name}]`
           : ""
       );
+      // Measurement: log this check so re-checks-until-clean can be counted.
+      recordCheck({
+        tester: localStorage.getItem(LABEL_KEY) ?? "local",
+        verdict: checked.overall_verdict,
+        flags: checked.flags.length,
+        missing: checked.missing_required.length,
+        chars: copy.trim().length,
+      });
+      setUsageTick((n) => n + 1);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
@@ -394,6 +420,17 @@ export default function Home() {
                 {loading && <span className="spinner" />}
                 {loading ? "Checking…" : "Check compliance"}
               </button>
+              {(result || copy.trim() || attachment) && (
+                <button
+                  type="button"
+                  className="ghost"
+                  onClick={startNewCopy}
+                  disabled={loading}
+                  title="Clear the box and start a new piece of copy (new usage session)"
+                >
+                  New copy
+                </button>
+              )}
               <span className="hint">{copy.trim().length} characters</span>
             </div>
           </div>
@@ -456,6 +493,8 @@ export default function Home() {
       {error && <div className="error">Error: {error}</div>}
 
       {result && <Results result={result} promotion={checkedPromotion} />}
+
+      <UsagePanel tick={usageTick} />
 
       <footer className="foot">
         Compliance-style review to assist a human approver — not legal advice.

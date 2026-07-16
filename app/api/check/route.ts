@@ -65,6 +65,22 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await runCheck(copy, attachment, access.key);
+
+    // Central measurement backup — one structured line per check in the server
+    // logs, independent of the client-side usage log a tester might not export.
+    // Counts only, never the copy itself.
+    console.log(
+      JSON.stringify({
+        evt: "check",
+        at: new Date().toISOString(),
+        tester: access.label ?? "unknown",
+        verdict: result.overall_verdict,
+        flags: result.flags.length,
+        missing: result.missing_required.length,
+        attachment: attachment?.kind ?? null,
+      })
+    );
+
     return NextResponse.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
