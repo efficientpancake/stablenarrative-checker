@@ -876,6 +876,86 @@ blockquote {
   line-height: 1.55;
 }
 
+/* Author notes are working material for sign-off, not an approval — colour them
+   neutral (accent), and reserve approval-green for a real approver decision. */
+.log-entry-author {
+  border-left-color: var(--accent);
+}
+.log-role {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.log-role-approver {
+  color: var(--status-success);
+  background: color-mix(in srgb, var(--status-success) 16%, transparent);
+}
+.log-role-author {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.log-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-right: 8px;
+  color: var(--text-secondary);
+}
+.log-entry-approver .log-reason-cat {
+  color: var(--status-success);
+}
+.log-entry-author .log-reason-cat {
+  color: var(--accent);
+}
+
+/* The logged in-card record: accent for an author note, green for an approval. */
+.override-accepted-author {
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-page));
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.override-accepted-author .accepted-badge {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+}
+
+/* ── Role toggle (who is recording the decision) ─────────────────────────── */
+.role-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+.role-toggle-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  margin-right: 4px;
+}
+.role-toggle-opt {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.role-toggle-opt:hover {
+  color: var(--text-primary);
+}
+.role-toggle-opt.is-active {
+  color: var(--accent-text);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
 /* ── Footer ─────────────────────────────────────────────── */
 .foot {
   margin-top: 52px;
