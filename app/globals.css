@@ -617,6 +617,255 @@ blockquote {
   border-color: color-mix(in srgb, var(--status-success) 40%, transparent);
 }
 
+/* ── Override / decision-log controls on each result card ─────────────────
+   The approver can accept the risk on any flag. Doing so records a reasoned,
+   contemporaneous decision (who/when/why) — the COBS 4.11.2G "why-satisfied"
+   record. A card with an accepted override is dimmed and success-edged so the
+   eye reads it as "handled", not "open breach". */
+.card.accepted {
+  border-left-color: var(--status-success);
+  opacity: 0.9;
+}
+
+.override-bar {
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 1px dashed var(--border-strong);
+}
+.override-open {
+  font-size: 12px;
+  padding: 4px 11px;
+}
+
+/* The inline reasoned form — sits recessed below the flag it concerns. */
+.override-form {
+  margin-top: 12px;
+  padding: 14px;
+  background: var(--bg-page);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.override-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
+.override-select,
+.override-input,
+.override-textarea {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  color: var(--text-primary);
+  padding: 9px 11px;
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.override-textarea {
+  resize: vertical;
+  line-height: 1.55;
+}
+.override-select:focus,
+.override-input:focus,
+.override-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.override-textarea::placeholder,
+.override-input::placeholder {
+  color: var(--text-placeholder);
+}
+.override-foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.override-approver {
+  flex: 1;
+  min-width: 160px;
+}
+.override-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.override-save {
+  font-size: 13px;
+  padding: 8px 16px;
+}
+
+/* The compact record shown once a decision is logged, in place of the form. */
+.override-accepted {
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: color-mix(in srgb, var(--status-success) 8%, var(--bg-page));
+  border: 1px solid color-mix(in srgb, var(--status-success) 30%, transparent);
+  border-radius: 10px;
+}
+.override-accepted-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.accepted-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--status-success) 18%, transparent);
+  color: var(--status-success);
+}
+.accepted-meta {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.override-undo {
+  margin-left: auto;
+  font-size: 12px;
+  padding: 3px 10px;
+}
+.accepted-reason {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.accepted-just {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* ── Decision log (audit trail) ──────────────────────────────────────────── */
+.log {
+  margin-top: 40px;
+  padding-top: 30px;
+  border-top: 1px solid var(--border-default);
+  animation: rise 0.35s ease both;
+}
+.log-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.log-head h2 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-weight: 700;
+}
+.log-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.log-clear:hover {
+  color: var(--status-error);
+  border-color: color-mix(in srgb, var(--status-error) 45%, transparent);
+}
+.log-note {
+  margin: 0 0 18px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  max-width: 72ch;
+}
+.log-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.log-entry {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-left: 3px solid var(--status-success);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.log-entry-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 9px;
+}
+.log-when {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.log-approver {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+}
+.log-undo {
+  margin-left: auto;
+  font-size: 12px;
+  padding: 3px 10px;
+}
+.log-rule {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.log-quote {
+  margin: 0 0 9px;
+  font-size: 13.5px;
+}
+.log-reason {
+  margin: 0 0 4px;
+}
+.log-reason-cat {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--status-success);
+}
+.log-just {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--text-primary);
+  line-height: 1.55;
+}
+
 /* ── Footer ─────────────────────────────────────────────── */
 .foot {
   margin-top: 52px;

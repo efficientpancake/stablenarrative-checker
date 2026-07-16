@@ -61,6 +61,9 @@ export default function Home() {
   const [copy, setCopy] = useState("");
   const [attachment, setAttachment] = useState<Attachment | null>(null);
   const [result, setResult] = useState<CheckResult | null>(null);
+  // The promotion captured at check time, so an override logged later records
+  // exactly what was assessed (even if the copy box is edited afterwards).
+  const [checkedPromotion, setCheckedPromotion] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -183,6 +186,13 @@ export default function Home() {
       }
       if (!res.ok) throw new Error(data.error || "Check failed");
       setResult(data as CheckResult);
+      setCheckedPromotion(
+        copy.trim()
+          ? copy.trim()
+          : attachment
+          ? `[Attached ${attachment.kind}: ${attachment.name}]`
+          : ""
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
@@ -438,7 +448,7 @@ export default function Home() {
 
       {error && <div className="error">Error: {error}</div>}
 
-      {result && <Results result={result} />}
+      {result && <Results result={result} promotion={checkedPromotion} />}
 
       <footer className="foot">
         Compliance-style review to assist a human approver — not legal advice.
