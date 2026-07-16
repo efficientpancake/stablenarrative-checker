@@ -469,7 +469,7 @@ export default function Home() {
       <footer className="foot">
         Compliance-style review to assist a human approver — not legal advice.
         <br />
-        Something wrong, or the checker called this one wrong?{" "}
+        Found a bug? Checker error?{" "}
         <Link className="foot-link" href="/support">
           Report a problem
         </Link>
