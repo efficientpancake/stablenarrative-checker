@@ -271,9 +271,9 @@ export default function Home() {
         {/* The code failing IS the bug most worth hearing about, so support has
             to be reachable from the locked screen — not just from inside. */}
         <footer className="foot">
-          Code not working, or don&apos;t have one?{" "}
+          Access code not working, or don&apos;t have one?{" "}
           <Link className="foot-link" href="/support">
-            Tell us what happened
+            Get in touch with us
           </Link>
           .
         </footer>
