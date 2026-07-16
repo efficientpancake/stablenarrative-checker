@@ -231,8 +231,8 @@ export default function Home() {
           </div>
           <h1>Enter your access code</h1>
           <p className="sub">
-            This checker is private. Enter the access code you were given to
-            continue — you’ll only need to do this once on this device.
+            Enter the access code you were given to continue. You’ll only need
+            to do this once on this device.
           </p>
         </header>
         <section className="panel gate-panel">
