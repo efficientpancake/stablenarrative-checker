@@ -294,15 +294,20 @@ textarea:focus {
   color: var(--text-secondary);
 }
 
-button {
+/* `.button-link` rides along on every button rule below: some actions have to
+   be real <a> elements (navigation), but must look identical to buttons. */
+button,
+.button-link {
   cursor: pointer;
   font-family: inherit;
 }
 /* Show a focus ring only for keyboard users — not a stuck ring after a click */
-button:focus {
+button:focus,
+.button-link:focus {
   outline: none;
 }
-button:focus-visible {
+button:focus-visible,
+.button-link:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -310,7 +315,8 @@ button:focus-visible {
 /* Primary — the single accent-filled action per screen.
    Enabled text is #ffffff on --accent #5865f2 = 4.61:1 (passes WCAG AA for
    normal text, both themes — accent is identical in light/dark). */
-button.primary {
+button.primary,
+.button-link.primary {
   display: inline-flex;
   align-items: center;
   gap: 9px;
@@ -325,12 +331,14 @@ button.primary {
   box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--accent) 55%, transparent);
   transition: transform 0.12s, box-shadow 0.12s, filter 0.12s, opacity 0.12s;
 }
-button.primary:hover:not(:disabled) {
+button.primary:hover:not(:disabled),
+.button-link.primary:hover {
   transform: translateY(-1px);
   filter: brightness(1.08);
   box-shadow: 0 10px 24px -6px color-mix(in srgb, var(--accent) 60%, transparent);
 }
-button.primary:active:not(:disabled) {
+button.primary:active:not(:disabled),
+.button-link.primary:active {
   transform: translateY(0);
 }
 /* Disabled: drop the indigo entirely for a flat neutral surface with muted
@@ -346,7 +354,8 @@ button.primary:disabled {
 }
 
 /* Secondary / ghost — transparent, bordered. Every non-primary action. */
-button.ghost {
+button.ghost,
+.button-link.ghost {
   background: transparent;
   border: 1px solid var(--border-strong);
   color: var(--text-secondary);
@@ -356,7 +365,8 @@ button.ghost {
   border-radius: 999px;
   transition: color 0.12s, border-color 0.12s;
 }
-button.ghost:hover {
+button.ghost:hover,
+.button-link.ghost:hover {
   color: var(--text-primary);
   border-color: var(--accent);
 }
@@ -874,6 +884,169 @@ blockquote {
   color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.6;
+}
+
+.foot-link {
+  color: var(--text-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.foot-link:hover {
+  color: var(--accent);
+}
+
+/* ── Support page ───────────────────────────────────────────
+   Reuses .wrap/.panel/.actions/button from above; only the form's own
+   rhythm and the email-fallback row are defined here. */
+/* The header sets its own bottom margin via .workspace on the main page; this
+   page has no workspace grid, so the panel supplies the same gap itself. */
+.support-panel {
+  margin-top: 28px;
+}
+
+.support-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.support-label {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+/* Every label after the first gets air above it — cheaper than tagging each
+   field with a wrapper div. */
+.support-label:not(:first-of-type) {
+  margin-top: 20px;
+}
+
+.support-req {
+  margin-left: 6px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Shared single-line control. The gate input predates this and still styles
+   itself inline — worth folding in here later. */
+.field-input {
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 14px;
+}
+.field-input::placeholder {
+  color: var(--text-placeholder);
+}
+.field-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+/* Inherits the base textarea rule; only the fixed height needs overriding. */
+.support-area {
+  min-height: 0;
+  resize: vertical;
+}
+
+.support-hint {
+  margin-top: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Auto-attached context. Quiet by design: it's a disclosure, not a feature. */
+.support-auto {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.7;
+}
+.support-auto code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--bg-input);
+  font-size: 11px;
+}
+
+/* Honeypot: off-screen rather than display:none — some bots skip hidden
+   fields, and screen readers already skip it via aria-hidden. */
+.support-hp {
+  position: absolute;
+  left: -5000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.support-done-note {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.support-done .actions {
+  margin-top: 18px;
+}
+
+/* ── Email fallback ─────────────────────────────────────────
+   The escape hatch for anyone who'd rather not use the form. */
+.support-alt {
+  margin-top: 26px;
+  padding: 20px 22px;
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  background: var(--bg-card);
+}
+
+.support-alt-title {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.support-alt-note {
+  margin: 6px 0 14px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.support-alt-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.support-email {
+  padding: 8px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 13px;
+  /* Long address on a narrow screen: wrap rather than blow out the row. */
+  word-break: break-all;
+}
+
+/* Links styled as buttons — match button height without being <button>. */
+.button-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
 }
 
 /* Collapse to a single column: the info panel drops below the editor and

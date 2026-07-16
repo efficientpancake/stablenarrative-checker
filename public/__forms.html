@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Netlify form definitions</title>
+    <meta name="robots" content="noindex" />
+  </head>
+  <body>
+    <!--
+      This page is never shown to anyone. It exists ONLY so Netlify's build-time
+      form detection can find a real HTML form and register it.
+
+      Netlify scans static HTML at deploy time; it cannot see a React form that
+      only exists after JavaScript runs, so an App Router page can't be detected
+      on its own. The support page therefore POSTs here (urlencoded, with
+      form-name=support) and Netlify records the submission against this form.
+
+      IMPORTANT: every field on /support must have a matching input below, with
+      the SAME name. A field missing here is silently dropped from submissions.
+      Type/required/order don't matter to Netlify — only the names.
+    -->
+    <form name="support" data-netlify="true" data-netlify-honeypot="bot-field" hidden>
+      <input type="hidden" name="form-name" value="support" />
+      <!-- Honeypot: real people never see it, bots fill it, Netlify bins those. -->
+      <input name="bot-field" />
+
+      <!-- Typed by the tester -->
+      <select name="kind"></select>
+      <textarea name="what"></textarea>
+      <textarea name="expected"></textarea>
+      <textarea name="promo"></textarea>
+      <input type="email" name="email" />
+
+      <!-- Auto-attached by the page, so the tester never types them.
+           `tester` is the access LABEL (user1), never the access code —
+           the code unlocks an API key and must not sit in form storage. -->
+      <input name="tester" />
+      <input name="env" />
+      <input name="when" />
+      <input name="build" />
+    </form>
+  </body>
+</html>

@@ -1,11 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { CheckResult } from "@/lib/types";
 import Results from "./components/Results";
 import ThemeToggle from "./components/ThemeToggle";
 
 const STORAGE_KEY = "sn_access_code";
+// The tester's LABEL ("user1"), stored so a support report can say who sent it.
+// Deliberately separate from the code: the code unlocks an API key and must
+// never leave this device; the label identifies without granting anything.
+const LABEL_KEY = "sn_access_label";
 
 const EXAMPLE = `Own uranium on-chain with xU3O8. A safe, guaranteed store of value backed by real assets.
 Don't miss out — get in before the next bull run.`;
@@ -88,6 +93,7 @@ export default function Home() {
         });
         const data = await res.json();
         setUnlocked(data.ok === true);
+        if (data.ok && data.label) localStorage.setItem(LABEL_KEY, data.label);
       } catch {
         setUnlocked(false);
       }
@@ -108,6 +114,7 @@ export default function Home() {
       const data = await res.json();
       if (data.ok) {
         localStorage.setItem(STORAGE_KEY, code);
+        if (data.label) localStorage.setItem(LABEL_KEY, data.label);
         setUnlocked(true);
       } else {
         setGateError(
@@ -261,6 +268,15 @@ export default function Home() {
             {gateError && <div className="error">{gateError}</div>}
           </form>
         </section>
+        {/* The code failing IS the bug most worth hearing about, so support has
+            to be reachable from the locked screen — not just from inside. */}
+        <footer className="foot">
+          Code not working, or don&apos;t have one?{" "}
+          <Link className="foot-link" href="/support">
+            Tell us what happened
+          </Link>
+          .
+        </footer>
       </main>
     );
   }
@@ -452,6 +468,12 @@ export default function Home() {
 
       <footer className="foot">
         Compliance-style review to assist a human approver — not legal advice.
+        <br />
+        Something wrong, or the checker called this one wrong?{" "}
+        <Link className="foot-link" href="/support">
+          Report a problem
+        </Link>
+        .
       </footer>
     </main>
   );
