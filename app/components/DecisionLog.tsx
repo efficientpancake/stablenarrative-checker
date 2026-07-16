@@ -2,7 +2,9 @@
 
 import {
   DecisionLogEntry,
+  ROLE_COPY,
   clearLog,
+  entryRole,
   exportCSV,
   exportJSON,
   formatWhen,
@@ -10,10 +12,11 @@ import {
 } from "@/lib/decisionLog";
 
 /**
- * The audit trail. Shows every override decision recorded on this device,
- * newest first, with one-click CSV/JSON export so the record is portable and
- * can be "produced quickly and reliably" (the FCA's expectation for approval
- * records — see COBS 4.11).
+ * The decision trail. Shows every checker flag someone chose to keep on this
+ * device, newest first, with one-click CSV/JSON export so the record is
+ * portable and can be "produced quickly and reliably". Two kinds of record
+ * live here and are kept visibly distinct: an author's note for sign-off, and
+ * an approver's override — only the latter is a COBS 4.11 approval record.
  */
 export default function DecisionLog({
   entries,
@@ -55,34 +58,42 @@ export default function DecisionLog({
       </div>
 
       <p className="log-note">
-        Contemporaneous record of every flag an approver overrode — who, when,
-        and why. Kept as documentary evidence of the basis for each approval
-        decision (COBS 4.11.2G). Retain for at least 3 years.
+        Contemporaneous record of every flag someone chose to keep — who, when,
+        and why. Author notes are working material for the s21 approver, not an
+        approval. An approver’s override is the approval record COBS 4.11.2G
+        expects; retain those for at least 3 years.
       </p>
 
       <ul className="log-list">
-        {entries.map((e) => (
-          <li key={e.id} className="log-entry">
-            <div className="log-entry-top">
-              <span className="log-when">{formatWhen(e.timestamp)}</span>
-              <span className="log-approver">{e.approver}</span>
-              <button
-                type="button"
-                className="ghost log-undo"
-                onClick={() => onChange(removeEntry(e.id))}
-                title="Remove this record"
-              >
-                Undo
-              </button>
-            </div>
-            <p className="log-rule">{e.rule}</p>
-            {e.quote && <blockquote className="log-quote">“{e.quote}”</blockquote>}
-            <p className="log-reason">
-              <span className="log-reason-cat">{e.reason}</span>
-            </p>
-            <p className="log-just">{e.justification}</p>
-          </li>
-        ))}
+        {entries.map((e) => {
+          const role = entryRole(e);
+          return (
+            <li key={e.id} className={`log-entry log-entry-${role}`}>
+              <div className="log-entry-top">
+                <span className={`log-role log-role-${role}`}>
+                  {role === "approver" ? "Approver" : "Author note"}
+                </span>
+                <span className="log-when">{formatWhen(e.timestamp)}</span>
+                <span className="log-approver">{e.approver}</span>
+                <button
+                  type="button"
+                  className="ghost log-undo"
+                  onClick={() => onChange(removeEntry(e.id))}
+                  title="Remove this record"
+                >
+                  Undo
+                </button>
+              </div>
+              <p className="log-rule">{e.rule}</p>
+              {e.quote && <blockquote className="log-quote">“{e.quote}”</blockquote>}
+              <p className="log-reason">
+                <span className="log-badge">{ROLE_COPY[role].badge}</span>
+                <span className="log-reason-cat">{e.reason}</span>
+              </p>
+              <p className="log-just">{e.justification}</p>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

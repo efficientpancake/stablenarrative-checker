@@ -4,8 +4,11 @@ import { useEffect, useState } from "react";
 import { CheckResult, Severity, Verdict } from "@/lib/types";
 import {
   DecisionLogEntry,
-  OVERRIDE_REASONS,
+  DecisionRole,
+  REASONS_BY_ROLE,
+  ROLE_COPY,
   addEntry,
+  entryRole,
   flagKey,
   formatWhen,
   getLog,
@@ -45,6 +48,11 @@ export default function Results({
   const [log, setLog] = useState<DecisionLogEntry[]>([]);
   useEffect(() => setLog(getLog()), []);
 
+  // Who is using the tool. Default is the marketer/author — the copy still
+  // has to reach an s21 approver — so keeping a flag is a note for sign-off,
+  // not an approval. Enterprise approver-users switch this to "approver".
+  const [role, setRole] = useState<DecisionRole>("author");
+
   // Which item's override form is currently open (by itemKey), or null.
   const [openKey, setOpenKey] = useState<string | null>(null);
 
@@ -59,6 +67,7 @@ export default function Results({
   ) {
     setLog(
       addEntry({
+        role,
         itemType: item.itemType,
         itemKey: item.itemKey,
         rule: item.rule,
@@ -89,6 +98,7 @@ export default function Results({
             {missing_required.length} missing element
             {missing_required.length === 1 ? "" : "s"}
           </span>
+          <RoleToggle role={role} onChange={setRole} />
         </div>
 
         <div className="col">
@@ -122,7 +132,7 @@ export default function Results({
                     <blockquote>“{f.quote}”</blockquote>
                     <p className="issue">{f.issue}</p>
                     <OverrideZone
-                      item={item}
+                      role={role}
                       accepted={accepted}
                       open={openKey === item.itemKey}
                       onOpen={() => setOpenKey(item.itemKey)}
@@ -170,7 +180,7 @@ export default function Results({
                       <strong>Why flagged:</strong> {m.why}
                     </p>
                     <OverrideZone
-                      item={item}
+                      role={role}
                       accepted={accepted}
                       open={openKey === item.itemKey}
                       onOpen={() => setOpenKey(item.itemKey)}
@@ -199,10 +209,41 @@ export default function Results({
   );
 }
 
-/** The override control on a single card: a button → an inline reasoned form,
- *  or a compact "risk accepted" record once a decision has been logged. */
+/** Role switch: who is recording this decision. The default author case keeps
+ *  copy with a note for sign-off; the approver case is the enterprise s21 user
+ *  whose call IS the approval. Same control, opposite regulatory weight. */
+function RoleToggle({
+  role,
+  onChange,
+}: {
+  role: DecisionRole;
+  onChange: (role: DecisionRole) => void;
+}) {
+  return (
+    <div className="role-toggle" role="group" aria-label="I am recording as">
+      <span className="role-toggle-label">I’m the</span>
+      {(["author", "approver"] as DecisionRole[]).map((r) => (
+        <button
+          key={r}
+          type="button"
+          className={`role-toggle-opt${role === r ? " is-active" : ""}`}
+          aria-pressed={role === r}
+          onClick={() => onChange(r)}
+        >
+          {r === "author" ? "Author" : "s21 approver"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** The decision control on a single card: a button → an inline reasoned form,
+ *  or a compact record once a decision has been logged. Copy is role-aware —
+ *  an author keeps copy with a note for sign-off; only an approver accepts risk.
+ *  A logged record is shown under the role it was written with, not the role
+ *  currently selected. */
 function OverrideZone({
-  item,
+  role,
   accepted,
   open,
   onOpen,
@@ -210,7 +251,7 @@ function OverrideZone({
   onSave,
   onUndo,
 }: {
-  item: Overridable;
+  role: DecisionRole;
   accepted?: DecisionLogEntry;
   open: boolean;
   onOpen: () => void;
@@ -219,10 +260,12 @@ function OverrideZone({
   onUndo: () => void;
 }) {
   if (accepted) {
+    const acceptedRole = entryRole(accepted);
+    const acceptedCopy = ROLE_COPY[acceptedRole];
     return (
-      <div className="override-accepted">
+      <div className={`override-accepted override-accepted-${acceptedRole}`}>
         <div className="override-accepted-head">
-          <span className="accepted-badge">Risk accepted</span>
+          <span className="accepted-badge">{acceptedCopy.badge}</span>
           <span className="accepted-meta">
             {accepted.approver} · {formatWhen(accepted.timestamp)}
           </span>
@@ -240,24 +283,27 @@ function OverrideZone({
     return (
       <div className="override-bar">
         <button type="button" className="ghost override-open" onClick={onOpen}>
-          Accept risk / override
+          {ROLE_COPY[role].action}
         </button>
       </div>
     );
   }
 
-  return <OverrideForm item={item} onCancel={onCancel} onSave={onSave} />;
+  return <OverrideForm role={role} onCancel={onCancel} onSave={onSave} />;
 }
 
 function OverrideForm({
+  role,
   onCancel,
   onSave,
 }: {
-  item: Overridable;
+  role: DecisionRole;
   onCancel: () => void;
   onSave: (fields: { reason: string; justification: string; approver: string }) => void;
 }) {
-  const [reason, setReason] = useState<string>(OVERRIDE_REASONS[0]);
+  const copy = ROLE_COPY[role];
+  const reasons = REASONS_BY_ROLE[role];
+  const [reason, setReason] = useState<string>(reasons[0]);
   const [justification, setJustification] = useState("");
   const [approver, setApprover] = useState("");
 
@@ -272,13 +318,13 @@ function OverrideForm({
   return (
     <form className="override-form" onSubmit={submit}>
       <label className="override-label">
-        Reason for overriding
+        {copy.reasonLabel}
         <select
           className="override-select"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
         >
-          {OVERRIDE_REASONS.map((r) => (
+          {reasons.map((r) => (
             <option key={r} value={r}>
               {r}
             </option>
@@ -287,24 +333,24 @@ function OverrideForm({
       </label>
 
       <label className="override-label">
-        Why is overriding this the right call?
+        {copy.justificationLabel}
         <textarea
           className="override-textarea"
           value={justification}
           onChange={(e) => setJustification(e.target.value)}
-          placeholder="Explain the basis for accepting this risk — what you considered and why the flag doesn't need to change the promotion. This is the record the FCA expects."
+          placeholder={copy.justificationPlaceholder}
           rows={3}
         />
       </label>
 
       <div className="override-foot">
         <label className="override-label override-approver">
-          Approver
+          {copy.personLabel}
           <input
             className="override-input"
             value={approver}
             onChange={(e) => setApprover(e.target.value)}
-            placeholder="Name or initials"
+            placeholder={copy.personPlaceholder}
             autoComplete="off"
           />
         </label>
@@ -313,7 +359,7 @@ function OverrideForm({
             Cancel
           </button>
           <button type="submit" className="primary override-save" disabled={!canSave}>
-            Log decision
+            {role === "approver" ? "Log decision" : "Save note"}
           </button>
         </div>
       </div>

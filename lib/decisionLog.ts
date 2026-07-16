@@ -1,17 +1,33 @@
 // ============================================================================
-// DECISION LOG — the FCA audit trail.
+// DECISION LOG — the record of every checker flag a human chose to keep.
 //
-// When the checker flags something and the human approver decides to OVERRIDE
-// it (accept the risk), that decision is recorded here with WHO decided, WHEN,
-// and WHY. This is the "record of why it is satisfied the promotion complies"
-// that COBS 4.11.2G says a firm should keep — and the contemporaneous, reasoned
-// record COBS 4.11.1R / 4.10 expect for an approval decision.
+// Two very different people can make that call, and the record must not blur
+// them, because the FCA weighting is opposite in each case:
 //
-// Grounded in (see /FCA Rules):
+//   • AUTHOR (the marketer, and the default user of this tool). They do NOT
+//     approve promotions — only an authorised s21 approver can. When an author
+//     keeps flagged copy, they are writing a NOTE that travels WITH the copy to
+//     sign-off: "here's why I think this is fine — over to you." It discharges
+//     no COBS obligation and is not an approval record. Framing it as "risk
+//     accepted" would invite the author to perform an approver-only act, and a
+//     log of "risk accepted" lines is an exhibit of documented recklessness if
+//     the FCA ever reads it.
+//
+//   • APPROVER (enterprise deployments whose users ARE the s21 approver). Their
+//     override IS the approval decision, and its record is the one COBS 4.11
+//     expects. The old approval-record language is correct — but ONLY here.
+//
+// The `role` on each entry keeps these apart. Copy, reason lists, and the COBS
+// grounding below all key off it. This is deliberately not a global rename to
+// "author": the approver semantics are load-bearing the moment enterprise lands.
+//
+// COBS grounding — applies to APPROVER-role entries only (see /FCA Rules):
 //   • COBS 4.11.1R(1)  — must make an adequate record of any promotion approved
 //   • COBS 4.11.2G     — should record WHY it's satisfied the promotion complies
 //   • COBS 4.5.2R      — approved promotion carries WHO approved it and WHEN
 //   • COBS 4.11.1R(3)  — retain 3 years (crypto = "any other case")
+// AUTHOR-role entries are pre-approval working material: they feed the s21
+// approver's decision but never substitute for it or for the record above.
 //
 // Storage is local-first (this device's browser). Export to CSV/JSON is what
 // makes the record portable and lets a firm "produce it quickly and reliably".
@@ -19,21 +35,77 @@
 
 const STORAGE_KEY = "sn_decision_log";
 
-/** Dropdown categories — the approver's track record. Edit freely; seeded from
- *  the compliance-mentor's language and the real-world limitations users hit. */
-export const OVERRIDE_REASONS = [
-  "Overcautious — flag doesn't meet the regulatory objective here",
-  "Requirement satisfied elsewhere (link / visual / landing page)",
-  "Rule not engaged in this context (e.g. not a financial promotion)",
-  "Risk understood and accepted (documented residual risk)",
-] as const;
+/** Who kept the flagged copy — see the module header. Legacy entries (written
+ *  before roles existed, all approver-framed) default to "approver". */
+export type DecisionRole = "author" | "approver";
 
-export type OverrideReason = (typeof OVERRIDE_REASONS)[number];
+/** Reason categories, split by role. The author's list never offers "accept
+ *  the risk" — accepting residual risk is the approver-only act; the author is
+ *  only flagging their reasoning for sign-off to confirm. */
+export const REASONS_BY_ROLE: Record<DecisionRole, readonly string[]> = {
+  author: [
+    "Looks overcautious — flagging for my approver to confirm",
+    "Requirement met elsewhere (link / visual / landing page)",
+    "May not be a financial promotion in this context",
+    "Wording is deliberate — explaining the intent for sign-off",
+  ],
+  approver: [
+    "Overcautious — flag doesn't meet the regulatory objective here",
+    "Requirement satisfied elsewhere (link / visual / landing page)",
+    "Rule not engaged in this context (e.g. not a financial promotion)",
+    "Risk understood and accepted (documented residual risk)",
+  ],
+};
+
+/** Role-aware presentation copy. The card action button, the logged-record
+ *  badge, and every form label are drawn from here so the two roles never
+ *  borrow each other's language. */
+export interface RoleCopy {
+  /** Primary action on a flagged card. */
+  action: string;
+  /** Badge on a logged entry. */
+  badge: string;
+  /** Label for the reason <select>. */
+  reasonLabel: string;
+  /** Label for the free-text justification. */
+  justificationLabel: string;
+  /** Placeholder for the justification textarea. */
+  justificationPlaceholder: string;
+  /** Label for the person field. */
+  personLabel: string;
+  /** Placeholder for the person field. */
+  personPlaceholder: string;
+}
+
+export const ROLE_COPY: Record<DecisionRole, RoleCopy> = {
+  author: {
+    action: "Keep as-is — note for sign-off",
+    badge: "Kept — noted for sign-off",
+    reasonLabel: "Reason for keeping as-is",
+    justificationLabel: "Why keep this as-is? (note for your approver)",
+    justificationPlaceholder:
+      "Explain your reasoning for the s21 approver — what you considered and why you think the flag doesn't need a change. This note travels to sign-off; it isn't approval.",
+    personLabel: "Author",
+    personPlaceholder: "Your name or initials",
+  },
+  approver: {
+    action: "Accept risk / override",
+    badge: "Risk accepted",
+    reasonLabel: "Reason for overriding",
+    justificationLabel: "Why is overriding this the right call?",
+    justificationPlaceholder:
+      "Explain the basis for accepting this risk — what you considered and why the flag doesn't need to change the promotion. This is the record the FCA expects for an approval decision.",
+    personLabel: "Approver",
+    personPlaceholder: "Name or initials",
+  },
+};
 
 export interface DecisionLogEntry {
   id: string;
-  /** ISO 8601 — contemporaneous timestamp of the override decision. */
+  /** ISO 8601 — contemporaneous timestamp of the decision. */
   timestamp: string;
+  /** Who kept the copy. Absent on legacy entries → treated as "approver". */
+  role?: DecisionRole;
   itemType: "flag" | "missing";
   /** Stable identifier for the flagged item (so the UI can show accepted state). */
   itemKey: string;
@@ -44,14 +116,22 @@ export interface DecisionLogEntry {
   /** What the checker raised — the issue text. */
   issue: string;
   severity?: string;
-  /** Dropdown category. */
+  /** Dropdown category (from REASONS_BY_ROLE for this entry's role). */
   reason: string;
-  /** Free-text justification — the load-bearing "why" (COBS 4.11.2G). */
+  /** Free-text justification — the load-bearing "why". */
   justification: string;
-  /** Who made the call — name or initials (COBS 4.5.2R accountability). */
+  /** Who recorded it — name or initials. Role-neutral by storage name; the
+   *  approver-accountability reading of COBS 4.5.2R applies only when
+   *  role === "approver". */
   approver: string;
   /** The promotion this decision relates to, so the record is self-contained. */
   promotion: string;
+}
+
+/** The role a record was written under, defaulting legacy (pre-role) entries to
+ *  "approver" — that is what the old approval-framed UI produced. */
+export function entryRole(entry: DecisionLogEntry): DecisionRole {
+  return entry.role ?? "approver";
 }
 
 /** Stable key for a flagged item — mirrors the engine's dedup key shape. */
@@ -111,15 +191,19 @@ export function clearLog(): DecisionLogEntry[] {
 }
 
 // ── Export ─────────────────────────────────────────────────────────────────
-const CSV_COLUMNS: { key: keyof DecisionLogEntry; label: string }[] = [
+// Role-neutral headers so an author's note is never exported under a column
+// that implies they approved the promotion. "Role" makes the distinction
+// explicit for anyone (including the FCA) reading the exported record.
+const CSV_COLUMNS: { key: keyof DecisionLogEntry; label: string; derive?: (e: DecisionLogEntry) => string }[] = [
   { key: "timestamp", label: "Timestamp (UTC)" },
-  { key: "approver", label: "Approver" },
+  { key: "role", label: "Role", derive: (e) => (entryRole(e) === "approver" ? "Approver (s21 sign-off)" : "Author (note for sign-off)") },
+  { key: "approver", label: "Recorded by" },
   { key: "itemType", label: "Type" },
   { key: "rule", label: "Rule / element" },
   { key: "quote", label: "Flagged text / requirement" },
   { key: "issue", label: "Issue raised" },
   { key: "severity", label: "Severity" },
-  { key: "reason", label: "Override reason" },
+  { key: "reason", label: "Reason" },
   { key: "justification", label: "Justification" },
   { key: "promotion", label: "Promotion" },
   { key: "id", label: "Record ID" },
@@ -134,7 +218,7 @@ function csvCell(value: unknown): string {
 export function toCSV(entries: DecisionLogEntry[]): string {
   const header = CSV_COLUMNS.map((c) => csvCell(c.label)).join(",");
   const rows = entries.map((e) =>
-    CSV_COLUMNS.map((c) => csvCell(e[c.key])).join(",")
+    CSV_COLUMNS.map((c) => csvCell(c.derive ? c.derive(e) : e[c.key])).join(",")
   );
   return [header, ...rows].join("\r\n");
 }
