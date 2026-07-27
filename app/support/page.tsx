@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import ThemeToggle from "@/app/components/ThemeToggle";
+import Logo from "@/app/components/Logo";
 
 // Deliberately OUTSIDE the access gate. If a tester's code doesn't work, this
 // is exactly when they need to reach us — a support form behind a broken gate
@@ -113,7 +114,7 @@ export default function Support() {
     } catch {
       // Never strand the report — fall back to the email address below.
       setError(
-        "Couldn't send that. Please copy the email address below and send it to us directly — sorry for the hassle."
+        "Couldn't send that. Please copy the email address below and send it to us directly. Sorry for the hassle."
       );
     } finally {
       setSending(false);
@@ -126,7 +127,7 @@ export default function Support() {
       setCopied(true);
       setTimeout(() => setCopied(false), 1600);
     } catch {
-      setError(`Couldn't copy automatically — the address is ${SUPPORT_EMAIL}`);
+      setError(`Couldn't copy automatically. The address is ${SUPPORT_EMAIL}`);
     }
   }
 
@@ -134,15 +135,14 @@ export default function Support() {
     <main className="wrap">
       <header className="head">
         <div className="brand">
-          <span className="brand-name">StableNarrative</span>
-          <span className="badge">SUPPORT</span>
+          <Logo />
           <ThemeToggle />
         </div>
-        <h1>{sent ? "Thanks — that's with us" : "Report a problem"}</h1>
+        <h1>{sent ? "Thanks, that's with us" : "Report a problem"}</h1>
         <p className="sub">
           {sent
             ? "Your report has been sent. If you left an email address we'll come back to you; if it's urgent, the address below reaches us directly."
-            : "Found a bug, or the checker called something wrong? Tell us here — it goes straight to the person who can fix it."}
+            : "Found a bug, or the checker called something wrong? Tell us here. It goes straight to the person who can fix it."}
         </p>
       </header>
 
@@ -226,7 +226,7 @@ export default function Support() {
               className="support-area"
               value={expected}
               onChange={(e) => setExpected(e.target.value)}
-              placeholder="Optional — but it's often the fastest way to see what went wrong."
+              placeholder="Optional, but it's often the fastest way to see what went wrong."
               rows={3}
             />
 
@@ -242,7 +242,7 @@ export default function Support() {
               rows={4}
             />
             <p className="support-hint">
-              Only sent if you paste it — nothing you check is collected
+              Only sent if you paste it. Nothing you check is collected
               automatically.
             </p>
 
@@ -255,7 +255,7 @@ export default function Support() {
               className="field-input"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Optional — only so we can reply."
+              placeholder="Optional, only so we can reply."
               autoComplete="email"
             />
 
@@ -284,7 +284,7 @@ export default function Support() {
       <section className="support-alt">
         <h2 className="support-alt-title">Prefer email?</h2>
         <p className="support-alt-note">
-          No mail app required — copy the address and use it wherever you read
+          No mail app required. Copy the address and use it wherever you read
           your email.
         </p>
         <div className="support-alt-row">
@@ -295,7 +295,7 @@ export default function Support() {
           <a
             className="button-link ghost"
             href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(
-              "StableNarrative checker — support"
+              "StableNarrative checker support"
             )}`}
           >
             Open mail app
@@ -304,7 +304,7 @@ export default function Support() {
       </section>
 
       <footer className="foot">
-        Compliance-style review to assist a human approver — not legal advice.
+        Compliance-style review to assist a human approver, not legal advice.
       </footer>
     </main>
   );

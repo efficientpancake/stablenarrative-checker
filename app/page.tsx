@@ -7,6 +7,7 @@ import { recordCheck, resetSession } from "@/lib/usageLog";
 import Results from "./components/Results";
 import UsagePanel from "./components/UsagePanel";
 import ThemeToggle from "./components/ThemeToggle";
+import Logo from "./components/Logo";
 
 const STORAGE_KEY = "sn_access_code";
 // The tester's LABEL ("user1"), stored so a support report can say who sent it.
@@ -128,7 +129,7 @@ export default function Home() {
         );
       }
     } catch {
-      setGateError("Something went wrong — please try again.");
+      setGateError("Something went wrong. Please try again.");
     } finally {
       setGateBusy(false);
     }
@@ -143,7 +144,7 @@ export default function Home() {
       return;
     }
     if (file.size > MAX_FILE_BYTES) {
-      setError("File is too large — please keep it under 4 MB.");
+      setError("File is too large. Please keep it under 4 MB.");
       return;
     }
     setError(null);
@@ -251,8 +252,7 @@ export default function Home() {
       <main className="wrap">
         <header className="head">
           <div className="brand">
-            <span className="brand-name">StableNarrative</span>
-            <span className="badge">LIVE</span>
+            <Logo />
             <ThemeToggle />
           </div>
           <h1>Enter your access code</h1>
@@ -302,17 +302,16 @@ export default function Home() {
     <main className="wrap">
       <header className="head">
         <div className="brand">
-          <span className="brand-name">StableNarrative</span>
-          <span className="badge">LIVE</span>
+          <Logo />
           <ThemeToggle />
         </div>
         <h1>FCA compliance check for UK crypto marketing copy</h1>
         <p className="sub">
-          Paste your copy or upload the promotion — image, PDF, Word, or text.
-          It gets checked against FCA financial-promotion rules — prohibited
-          content, missing required elements, visual prominence of the risk
-          warning, and a compliant rewrite — before it reaches your s21
-          approver. This tool pre-cleans; the human approver always signs off.
+          Paste your copy or upload the promotion: image, PDF, Word, or text.
+          It gets checked against FCA financial-promotion rules (prohibited
+          content, missing required elements, and visual prominence of the risk
+          warning) before it reaches your s21 approver. This tool pre-cleans;
+          the human approver always signs off.
         </p>
       </header>
 
@@ -333,7 +332,7 @@ export default function Home() {
               id="copy"
               value={copy}
               onChange={(e) => setCopy(e.target.value)}
-              placeholder="Paste the tweet, landing-page hero, ad, or CTA here — or attach a file below…"
+              placeholder="Paste the tweet, landing-page hero, ad, or CTA here, or attach a file below…"
               rows={10}
             />
 
@@ -406,7 +405,7 @@ export default function Home() {
               )}
               <p className="hint" style={{ marginTop: "0.4rem" }}>
                 {isVisual
-                  ? "Images and PDFs are also checked for whether the risk warning is prominent — not just present."
+                  ? "Images and PDFs are also checked for whether the risk warning is prominent, not just present."
                   : "Word and text files are read as copy; images and PDFs also get a visual-prominence check."}
               </p>
             </div>
@@ -466,18 +465,8 @@ export default function Home() {
                 <p className="info-item-title">Visual prominence (images &amp; PDFs)</p>
                 <p className="info-item-desc">
                   When you upload an image or a designed PDF, it also checks the
-                  risk warning is actually prominent — legible, sized, and not
+                  risk warning is actually prominent: legible, sized, and not
                   buried in tiny grey text (COBS 4.12A.11R).
-                </p>
-              </div>
-            </li>
-            <li className="info-item">
-              <span className="info-marker marker-success" aria-hidden="true" />
-              <div>
-                <p className="info-item-title">Compliant rewrite</p>
-                <p className="info-item-desc">
-                  A corrected version that keeps your message but clears the
-                  rules — ready to hand to your s21 approver.
                 </p>
               </div>
             </li>
@@ -497,7 +486,7 @@ export default function Home() {
       <UsagePanel tick={usageTick} />
 
       <footer className="foot">
-        Compliance-style review to assist a human approver — not legal advice.
+        Compliance-style review to assist a human approver, not legal advice.
         <br />
         Found a bug? Checker error?{" "}
         <Link className="foot-link" href="/support">

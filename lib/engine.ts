@@ -56,7 +56,6 @@ export async function runCheck(
       overall_verdict: "compliant",
       flags: [],
       missing_required: [],
-      compliant_rewrite: "",
     };
   }
   // The stub is text-only and can't see attachments; the live engine handles both.
@@ -115,7 +114,7 @@ async function callClaude(
       // Ceiling, not a spend — billed on actual output tokens, so headroom is
       // free. 16000 is the safe max for a non-streaming request (above ~16K
       // risks an HTTP timeout and would need streaming). Plenty for a tweet
-      // check + full compliant rewrite.
+      // check (flags + missing elements only — no rewrite).
       max_tokens: 16000,
       // A compliance check is a fast, structured JSON extraction — no chain-of-
       // thought needed. Disabling thinking keeps the response a single text
@@ -330,28 +329,9 @@ function stubEngine(text: string): CheckResult {
     verdict = "non_compliant";
   }
 
-  // ── Rewrite ────────────────────────────────────────────────────────────────
-  let rewrite: string;
-  if (verdict === "compliant" && looksFactualOnly) {
-    rewrite = "No change required — factual content, not a financial promotion.";
-  } else if (verdict === "compliant") {
-    rewrite = "N/A — already compliant.";
-  } else {
-    const hasIncentive = INCENTIVE_PATTERNS.some((p) => p.re.test(text));
-    rewrite =
-      `**${PRESCRIBED_RISK_WARNING} Take 2 mins to learn more.**\n\n` +
-      `[Compliant rewrite — STUB] This heuristic stub flags breaches but does not generate full replacement copy. ` +
-      `The live engine (curated ruleset) rewrites the whole input: it leads with the risk warning above, replaces restricted words ` +
-      `with substantiated language, adds balancing capital-at-risk and unregulated-status statements, and discloses fees where relevant.` +
-      (hasIncentive
-        ? `\n\nNote: the banned incentive above cannot be reworded into compliance — it must be REMOVED from any promotion reaching UK retail clients (COBS 4.12A.7R).`
-        : "");
-  }
-
   return {
     overall_verdict: verdict,
     flags,
     missing_required: missing,
-    compliant_rewrite: rewrite,
   };
 }

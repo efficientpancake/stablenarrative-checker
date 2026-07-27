@@ -30,7 +30,7 @@ export default function DecisionLog({
   function confirmClear() {
     if (
       window.confirm(
-        "Clear the entire decision log on this device? Export it first if you need the record — this can't be undone."
+        "Clear the entire decision log on this device? Export it first if you need the record. This can't be undone."
       )
     ) {
       onChange(clearLog());
@@ -58,7 +58,7 @@ export default function DecisionLog({
       </div>
 
       <p className="log-note">
-        Contemporaneous record of every flag someone chose to keep — who, when,
+        Contemporaneous record of every flag someone chose to keep: who, when,
         and why. Author notes are working material for the s21 approver, not an
         approval. An approver’s override is the approval record COBS 4.11.2G
         expects; retain those for at least 3 years.

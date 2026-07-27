@@ -28,6 +28,4 @@ export interface CheckResult {
   overall_verdict: Verdict;
   flags: Flag[];
   missing_required: MissingElement[];
-  /** The cleaned-up, compliant version of the whole input. */
-  compliant_rewrite: string;
 }

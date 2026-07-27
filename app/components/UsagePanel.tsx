@@ -28,7 +28,7 @@ export default function UsagePanel({ tick }: { tick: number }) {
   function confirmClear() {
     if (
       window.confirm(
-        "Clear the usage log on this device? Export it first if you need the record — this can't be undone."
+        "Clear the usage log on this device? Export it first if you need the record. This can't be undone."
       )
     ) {
       setEntries(clearLog());
@@ -44,7 +44,7 @@ export default function UsagePanel({ tick }: { tick: number }) {
 
       <div className="usage-body">
         <p className="usage-note">
-          One row per check on this device — who, when, the verdict, issues
+          One row per check on this device: who, when, the verdict, issues
           caught, and how many re-check rounds each piece took to come back
           clean. A piece stays one session across every tweak (even after it
           first goes clean) until you hit “New copy.” Every iteration here is an

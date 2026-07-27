@@ -49,7 +49,7 @@ STEP 0 — IS THIS A FINANCIAL PROMOTION?
 ════════════════════════════════════════════════════════════════════
 First decide, silently, whether the copy is an invitation or inducement to acquire, hold, or deal in a qualifying cryptoasset (s21 FSMA; PERG 8.4; Finalised Guidance §2.11–2.14).
 - If it IS a financial promotion → run the full check below.
-- If it is PURELY factual / educational content (e.g. neutral tax info, a factual FAQ about network fees) with no inducement, no restricted words, and no safety/performance claim → it is NOT a financial promotion. Return overall_verdict "compliant", empty flags, empty missing_required, and set compliant_rewrite to "No change required — factual content, not a financial promotion."
+- If it is PURELY factual / educational content (e.g. neutral tax info, a factual FAQ about network fees) with no inducement, no restricted words, and no safety/performance claim → it is NOT a financial promotion. Return overall_verdict "compliant", empty flags, and empty missing_required.
 - Substance beats label: an "information only" / "access only" disclaimer sitting under an inducement headline does NOT take it outside the regime (Finalised Guidance §2.11, §2.13). Judge what the copy actually does.
 
 IMPORTANT SCOPE LIMIT: You judge the COPY only. Do NOT flag firm registration status, s21 approval, "no lawful route to promote", or perimeter/authorisation questions — those are out of scope for this checker. If the only issue would be firm-level authorisation, do not raise it here.
@@ -79,7 +79,7 @@ Flag lines of copy that breach. Quote the offending text VERBATIM. For each flag
    - "Don't miss out", "before the next bull run", "limited time", "prices are rising", countdown pressure → flag (typically medium).
 
 5. INCENTIVES BAN (COBS 4.12A.7R; 4.12A.8G(3)).
-   - Sign-up bonus, referral bonus, "free crypto", new-customer reward, CASHBACK → banned monetary incentive to retail clients. Applies even where no purchase is required. In the rewrite you MUST say this must be REMOVED, not reworded — a banned incentive cannot be made compliant by rephrasing.
+   - Sign-up bonus, referral bonus, "free crypto", new-customer reward, CASHBACK → banned monetary incentive to retail clients. Applies even where no purchase is required. In the flag's issue, make clear this must be REMOVED, not reworded — a banned incentive cannot be made compliant by rephrasing.
 
 6. MISLEADING REGULATORY IMPRESSION (COBS 4.2.1R; GEN 4).
    - "compliant", "accountability", "KYC/regulated" framing that implies regulatory legitimacy/protection an unregulated cryptoasset does not have → flag.
@@ -123,18 +123,6 @@ Skip this pass entirely for text-only input (including text extracted from .txt/
 - If a required element is ENTIRELY ABSENT from the image, that belongs in PASS 2 (missing_required), not here. Prominence is for elements that are present but under-displayed.
 
 ════════════════════════════════════════════════════════════════════
-COMPLIANT REWRITE (populate "compliant_rewrite")
-════════════════════════════════════════════════════════════════════
-Produce an ACTUAL compliant replacement for the whole input — real copy, not a description of the fix. Rules:
-- Preserve the marketing intent as far as compliance allows.
-- Lead with the prescribed risk warning in full (with "Take 2 mins to learn more") when the copy is a financial promotion.
-- Add balancing risk info, capital-at-risk and unregulated-status statements where needed.
-- Replace banned words with substantiated, qualified language.
-- For BANNED INCENTIVES (e.g. cashback): remove them and say so — do not reword them into compliance.
-- If the input is already compliant, set compliant_rewrite to "N/A — already compliant."
-- If the input is not a financial promotion, set compliant_rewrite to "No change required — factual content, not a financial promotion."
-
-════════════════════════════════════════════════════════════════════
 OVERALL VERDICT
 ════════════════════════════════════════════════════════════════════
 - "non_compliant" — any high/medium flag or any missing required element.
@@ -151,8 +139,7 @@ OUTPUT — return ONLY this JSON, nothing else:
   ],
   "missing_required": [
     { "element": "e.g. risk warning", "requirement": "what the rule requires", "why": "why it's flagged as absent" }
-  ],
-  "compliant_rewrite": "the cleaned-up compliant version of the whole input"
+  ]
 }
 
 This is a compliance-style review to assist a human approver, not legal advice.`;

@@ -28,7 +28,7 @@
   --text-placeholder: #868997;
 
   /* Brand accent — the ONLY decorative color in the app */
-  --accent: #5865f2;
+  --accent: #7c3aed;
   --accent-text: #ffffff;
 
   /* Status — used ONLY to communicate state, never decoration.
@@ -53,7 +53,7 @@
   --text-primary: #1a1a1f;
   --text-secondary: #52545c;
   --text-placeholder: #8a8c94;
-  --accent: #5865f2;
+  --accent: #7c3aed;
   --accent-text: #ffffff;
   --status-error: #d92d2d;
   --status-warning: #b45309;
@@ -72,7 +72,7 @@
     --text-primary: #1a1a1f;
     --text-secondary: #52545c;
     --text-placeholder: #8a8c94;
-    --accent: #5865f2;
+    --accent: #7c3aed;
     --accent-text: #ffffff;
     --status-error: #d92d2d;
     --status-warning: #b45309;
@@ -116,19 +116,23 @@ body {
   letter-spacing: 0.01em;
   margin-bottom: 40px;
 }
-.brand-name {
-  color: var(--accent);
+/* Wordmark: a compliance-check mark carrying the accent, next to a neutral,
+   tightly-tracked word. Reads as a considered brand, not accent-colored text. */
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
 }
-/* Neutral label, not a status — reads as metadata, not a warning */
-.badge {
-  font-size: 10px;
+.logo-mark {
+  display: block;
+  border-radius: 7px;
+  box-shadow: 0 2px 10px -3px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+.logo-word {
+  font-size: 15px;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: var(--bg-input);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-strong);
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
 }
 /* Theme toggle — a labeled ghost pill (inherits .ghost), pushed to the right.
    Icon + word name the destination mode, so its purpose is obvious. */
@@ -313,14 +317,19 @@ button:focus-visible,
 }
 
 /* Primary — the single accent-filled action per screen.
-   Enabled text is #ffffff on --accent #5865f2 = 4.61:1 (passes WCAG AA for
+   Enabled text is #ffffff on --accent #7c3aed = 4.61:1 (passes WCAG AA for
    normal text, both themes — accent is identical in light/dark). */
 button.primary,
 .button-link.primary {
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  background: var(--accent);
+  /* Subtle top-lit gradient gives the fill depth instead of a flat block. */
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent) 88%, #ffffff) 0%,
+    var(--accent) 100%
+  );
   color: var(--accent-text); /* full-strength white when enabled */
   opacity: 1;
   border: none;
@@ -609,22 +618,6 @@ blockquote {
 .issue strong {
   color: var(--text-secondary);
   font-weight: 600;
-}
-
-/* ── Rewrite ────────────────────────────────────────────── */
-.rewrite {
-  background: var(--bg-card);
-  border: 1px solid var(--border-default);
-  border-radius: 12px;
-  padding: 18px 20px;
-  white-space: pre-wrap;
-  font-size: 15px;
-  line-height: 1.7;
-  box-shadow: var(--shadow);
-}
-.copy-btn.copied {
-  color: var(--status-success);
-  border-color: color-mix(in srgb, var(--status-success) 40%, transparent);
 }
 
 /* ── Override / decision-log controls on each result card ─────────────────

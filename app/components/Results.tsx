@@ -41,7 +41,7 @@ export default function Results({
   /** The promotion that was checked — stored on each override for a self-contained record. */
   promotion: string;
 }) {
-  const { overall_verdict, flags, missing_required, compliant_rewrite } = result;
+  const { overall_verdict, flags, missing_required } = result;
 
   // The full decision log, loaded from this device. Kept here so both the
   // per-item "accepted" state and the log panel below stay in sync.
@@ -193,14 +193,6 @@ export default function Results({
               })}
             </ul>
           )}
-        </div>
-
-        <div className="col">
-          <h2>
-            Compliant rewrite
-            <CopyButton text={compliant_rewrite} />
-          </h2>
-          <div className="rewrite">{compliant_rewrite}</div>
         </div>
       </section>
 
@@ -371,24 +363,3 @@ function SeverityPill({ severity }: { severity: Severity }) {
   return <span className={`pill pill-${severity}`}>{severity}</span>;
 }
 
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1600);
-    } catch {
-      /* clipboard unavailable — no-op */
-    }
-  }
-  return (
-    <button
-      type="button"
-      className={`ghost copy-btn${copied ? " copied" : ""}`}
-      onClick={copy}
-    >
-      {copied ? "Copied ✓" : "Copy"}
-    </button>
-  );
-}
