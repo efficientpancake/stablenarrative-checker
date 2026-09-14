@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { CheckResult } from "@/lib/types";
 import { recordCheck, resetSession } from "@/lib/usageLog";
+import { rememberPiece } from "@/lib/outcomeLog";
 import Results from "./components/Results";
+import ApprovalOutcomes from "./components/ApprovalOutcomes";
 import UsagePanel from "./components/UsagePanel";
 import ThemeToggle from "./components/ThemeToggle";
 import Logo from "./components/Logo";
@@ -76,6 +78,9 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   // Bumped after each recorded check so the usage panel re-reads the log.
   const [usageTick, setUsageTick] = useState(0);
+  // The piece currently being worked (its usage session). Not yet sent to an
+  // approver, so the "did it get signed off?" list leaves it out.
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   // Access gate. null = still checking; true = unlocked (or app is ungated);
@@ -183,6 +188,7 @@ export default function Home() {
     setError(null);
     setCheckedPromotion("");
     resetSession();
+    setActiveSessionId(null);
   }
 
   async function check() {
@@ -219,13 +225,24 @@ export default function Home() {
           : ""
       );
       // Measurement: log this check so re-checks-until-clean can be counted.
-      recordCheck({
+      const log = recordCheck({
         tester: localStorage.getItem(LABEL_KEY) ?? "local",
         verdict: checked.overall_verdict,
         flags: checked.flags.length,
         missing: checked.missing_required.length,
         chars: copy.trim().length,
       });
+      // Remember this piece so the tester can report its sign-off outcome
+      // later. The preview label stays on this device; see lib/outcomeLog.ts.
+      const sessionId = log[0]?.sessionId;
+      if (sessionId) {
+        rememberPiece(
+          sessionId,
+          copy.trim() ||
+            (attachment ? `Attached ${attachment.kind}: ${attachment.name}` : "")
+        );
+        setActiveSessionId(sessionId);
+      }
       setUsageTick((n) => n + 1);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
@@ -314,6 +331,12 @@ export default function Home() {
           the human approver always signs off.
         </p>
       </header>
+
+      <ApprovalOutcomes
+        tick={usageTick}
+        activeSessionId={activeSessionId}
+        onChange={() => setUsageTick((n) => n + 1)}
+      />
 
       <div className="workspace">
         <section className="panel">

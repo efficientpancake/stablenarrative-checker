@@ -10,6 +10,7 @@ import {
   getLog,
   summarize,
 } from "@/lib/usageLog";
+import { getPieces, summarizeOutcomes } from "@/lib/outcomeLog";
 
 /**
  * Measurement readout for the pilot — not part of the tester's task. Kept in a
@@ -24,6 +25,7 @@ export default function UsagePanel({ tick }: { tick: number }) {
   if (entries.length === 0) return null;
 
   const s: UsageSummary = summarize(entries);
+  const o = summarizeOutcomes(getPieces());
 
   function confirmClear() {
     if (
@@ -48,7 +50,8 @@ export default function UsagePanel({ tick }: { tick: number }) {
           caught, and how many re-check rounds each piece took to come back
           clean. A piece stays one session across every tweak (even after it
           first goes clean) until you hit “New copy.” Every iteration here is an
-          approver round the tool stood in for.
+          approver round the tool stood in for. “Approved first time” counts the
+          pieces you&apos;ve reported back on after sign-off.
         </p>
 
         <div className="usage-stats">
@@ -61,6 +64,10 @@ export default function UsagePanel({ tick }: { tick: number }) {
           <Stat
             value={s.avgRoundsToClean == null ? "—" : s.avgRoundsToClean.toFixed(1)}
             label="avg rounds to clean"
+          />
+          <Stat
+            value={o.answered === 0 ? "—" : `${o.approvedFirstTime}/${o.answered}`}
+            label="approved first time"
           />
           <Stat value={s.flagsCaught} label="flags caught" />
           <Stat value={s.missingCaught} label="missing caught" />

@@ -39,5 +39,28 @@
       <input name="when" />
       <input name="build" />
     </form>
+
+    <!--
+      Approval outcomes (app/components/ApprovalOutcomes.tsx, lib/outcomeLog.ts).
+      One submission per piece of copy, sent when the tester reports what their
+      approver did. Same rule as above: every field name must match exactly.
+      Never includes the marketing copy. `feedback` is only what the tester
+      chooses to paste, under a label that says it is sent.
+    -->
+    <form name="outcome" data-netlify="true" data-netlify-honeypot="bot-field" hidden>
+      <input type="hidden" name="form-name" value="outcome" />
+      <input name="bot-field" />
+
+      <input name="tester" />
+      <input name="session" />
+      <input name="outcome" />
+      <input name="rounds" />
+      <input name="reached_clean" />
+      <input name="rounds_to_clean" />
+      <textarea name="feedback"></textarea>
+      <input name="first_checked" />
+      <input name="answered_at" />
+      <input name="build" />
+    </form>
   </body>
 </html>

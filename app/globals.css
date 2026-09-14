@@ -1230,3 +1230,97 @@ blockquote {
     font-size: 26px;
   }
 }
+
+/* ── Approval outcomes: "did your approver sign these off?" ─────────────────
+   The tester's side of the free-access deal. Sits above the workspace so a
+   returning tester sees it first; hides itself when nothing is pending. */
+.outcomes {
+  margin-top: 32px;
+  background: var(--bg-card);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border-default));
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  box-shadow: var(--shadow);
+}
+.outcomes-title {
+  margin: 0 0 6px;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+.outcomes-sub {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  max-width: 68ch;
+}
+.outcomes-notice {
+  margin: 14px 0 0;
+  font-size: 14px;
+  color: var(--status-success);
+}
+.outcomes-list {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+}
+.outcome-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  padding: 14px 0;
+  border-top: 1px solid var(--border-default);
+}
+.outcome-piece {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+.outcome-label {
+  margin: 0;
+  font-size: 14.5px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.outcome-meta {
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+.outcome-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.outcomes button.ghost.outcome-yes:hover:not(:disabled) {
+  color: var(--status-success);
+  border-color: var(--status-success);
+}
+.outcomes button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.outcome-feedback {
+  flex: 1 1 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.outcome-feedback-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.outcome-feedback textarea {
+  padding: 10px 12px;
+  font-size: 14px;
+}
+.outcomes-more {
+  margin: 12px 0 0;
+}
