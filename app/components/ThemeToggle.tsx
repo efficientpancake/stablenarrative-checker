@@ -9,13 +9,8 @@ export default function ThemeToggle() {
   const [theme, setTheme] = useState<Theme | null>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem("theme");
-    if (stored === "light" || stored === "dark") {
-      setTheme(stored);
-    } else {
-      const prefersLight = window.matchMedia("(prefers-color-scheme: light)").matches;
-      setTheme(prefersLight ? "light" : "dark");
-    }
+    // Light ("Soft") is the design default. Dark only if the user chose it.
+    setTheme(localStorage.getItem("theme") === "dark" ? "dark" : "light");
   }, []);
 
   function toggle() {

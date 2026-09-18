@@ -134,6 +134,14 @@ export function entryRole(entry: DecisionLogEntry): DecisionRole {
   return entry.role ?? "approver";
 }
 
+/** How a rule name is shown on screen. The engine writes rule names as
+ *  "Banned/caution word — COBS 4.2.5G"; the dash is shown as a middle dot so
+ *  the product's copy has no em dashes. Display only: stored records and the
+ *  dedup keys keep the engine's exact text. */
+export function displayRule(rule: string): string {
+  return rule.replace(/\s*[\u2014\u2013]\s*/g, " · ");
+}
+
 /** Stable key for a flagged item — mirrors the engine's dedup key shape. */
 export function flagKey(rule: string, quote: string): string {
   return `flag|${rule}|${quote}`;

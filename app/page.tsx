@@ -51,8 +51,8 @@ export default function Landing() {
               In early access with a small group of marketers
             </span>
             <h1 className={styles.title}>
-              Catch FCA breaches in your crypto marketing copy before your
-              approver does.
+              Catch FCA breaches in your crypto marketing copy{" "}
+              <span className={styles.keep}>before your approver does.</span>
             </h1>
             <p className={styles.lede}>
               StableNarrative checks your copy against the FCA&apos;s cryptoasset

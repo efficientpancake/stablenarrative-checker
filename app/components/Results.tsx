@@ -8,6 +8,7 @@ import {
   REASONS_BY_ROLE,
   ROLE_COPY,
   addEntry,
+  displayRule,
   entryRole,
   flagKey,
   formatWhen,
@@ -164,9 +165,11 @@ export default function Results({
         >
           <div className="card-head">
             <SeverityPill severity={f.severity} />
-            <span className="rule">{f.rule}</span>
+            <span className="rule">{displayRule(f.rule)}</span>
           </div>
-          <blockquote>“{f.quote}”</blockquote>
+          <blockquote>
+            <span className={`flagged flagged-${f.severity}`}>{f.quote}</span>
+          </blockquote>
           <p className="issue">{f.issue}</p>
           {zone}
         </li>
@@ -405,6 +408,7 @@ function OverrideForm({
 }
 
 function SeverityPill({ severity }: { severity: Severity }) {
-  return <span className={`pill pill-${severity}`}>{severity}</span>;
+  const label = severity.charAt(0).toUpperCase() + severity.slice(1);
+  return <span className={`pill pill-${severity}`}>{label}</span>;
 }
 

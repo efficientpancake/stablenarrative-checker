@@ -4,6 +4,7 @@ import {
   DecisionLogEntry,
   ROLE_COPY,
   clearLog,
+  displayRule,
   entryRole,
   exportCSV,
   exportJSON,
@@ -84,7 +85,7 @@ export default function DecisionLog({
                   Undo
                 </button>
               </div>
-              <p className="log-rule">{e.rule}</p>
+              <p className="log-rule">{displayRule(e.rule)}</p>
               {e.quote && <blockquote className="log-quote">“{e.quote}”</blockquote>}
               <p className="log-reason">
                 <span className="log-badge">{ROLE_COPY[role].badge}</span>
