@@ -30,9 +30,19 @@ export default function Landing() {
       <div className={styles.wrap}>
         <header className={styles.header}>
           <Logo />
-          <Link href="/app" className={styles.login}>
-            Log in
-          </Link>
+          <div className={styles.headerActions}>
+            <a
+              className={styles.headerBook}
+              href={BOOKING_LINK}
+              target="_blank"
+              rel="noopener"
+            >
+              Book a 15-minute call
+            </a>
+            <Link href="/app" className={styles.login}>
+              Log in
+            </Link>
+          </div>
         </header>
 
         <main>
