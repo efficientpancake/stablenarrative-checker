@@ -136,7 +136,12 @@ export default function Support() {
       <header className="head">
         <div className="brand">
           <Logo />
-          <ThemeToggle />
+          <div className="brand-actions">
+            <Link href="/app" className="button-link ghost">
+              Back to checker
+            </Link>
+            <ThemeToggle />
+          </div>
         </div>
         <h1>{sent ? "Thanks, that's with us" : "Report a problem"}</h1>
         <p className="sub">

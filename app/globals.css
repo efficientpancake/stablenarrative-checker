@@ -135,8 +135,18 @@ a.logo {
   font-weight: 600;
   color: var(--text-primary);
 }
-.theme-toggle {
+/* Right side of the header: page navigation (Support / Back to checker)
+   next to the theme toggle. */
+.brand-actions {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.brand-actions > * {
+  white-space: nowrap;
+}
+.theme-toggle {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1259,6 +1269,12 @@ blockquote {
 @media (max-width: 560px) {
   .wrap {
     padding: 36px 18px 80px;
+  }
+  /* The logo and header buttons can't share one line on a phone: the
+     buttons drop to their own row, right-aligned, each on a single line. */
+  .brand {
+    flex-wrap: wrap;
+    row-gap: 12px;
   }
   .head h1 {
     font-size: 27px;

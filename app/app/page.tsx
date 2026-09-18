@@ -270,7 +270,12 @@ export default function Home() {
         <header className="head">
           <div className="brand">
             <Logo />
-            <ThemeToggle />
+            <div className="brand-actions">
+              <Link href="/support" className="button-link ghost">
+                Support
+              </Link>
+              <ThemeToggle />
+            </div>
           </div>
           <h1>Enter your access code</h1>
           <p className="sub">
@@ -320,7 +325,12 @@ export default function Home() {
       <header className="head">
         <div className="brand">
           <Logo />
-          <ThemeToggle />
+          <div className="brand-actions">
+            <Link href="/support" className="button-link ghost">
+              Support
+            </Link>
+            <ThemeToggle />
+          </div>
         </div>
         <h1>FCA compliance check for UK crypto marketing copy</h1>
         <p className="sub">
