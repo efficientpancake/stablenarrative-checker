@@ -53,7 +53,8 @@ Before proposing any font, color or format change, check it against this list.
 - **Scale:**
   - Landing headline: clamp(2rem, 3.6vw, 2.6rem), weight 500, line height 1.22
   - Page title (checker): 34px / 27px on phones, weight 500
-  - Section heading: 18 to 26px, weight 500 to 600
+  - Section heading: 18 to 26px, weight 600 (checker); landing section
+    headings 26px bold (700)
   - Body: 17px (landing lede 18px), line height 1.5
   - Small text (meta, hints, tags): 14 to 15.5px, never below 14px
 - **Keep phrases together:** where a phrase must not break (the landing
