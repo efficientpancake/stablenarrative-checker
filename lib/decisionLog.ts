@@ -44,13 +44,13 @@ export type DecisionRole = "author" | "approver";
  *  only flagging their reasoning for sign-off to confirm. */
 export const REASONS_BY_ROLE: Record<DecisionRole, readonly string[]> = {
   author: [
-    "Looks overcautious — flagging for my approver to confirm",
+    "Looks overcautious: flagging for my approver to confirm",
     "Requirement met elsewhere (link / visual / landing page)",
     "May not be a financial promotion in this context",
-    "Wording is deliberate — explaining the intent for sign-off",
+    "Wording is deliberate: explaining the intent for sign-off",
   ],
   approver: [
-    "Overcautious — flag doesn't meet the regulatory objective here",
+    "Overcautious: the flag doesn't meet the regulatory objective here",
     "Requirement satisfied elsewhere (link / visual / landing page)",
     "Rule not engaged in this context (e.g. not a financial promotion)",
     "Risk understood and accepted (documented residual risk)",
@@ -79,12 +79,12 @@ export interface RoleCopy {
 
 export const ROLE_COPY: Record<DecisionRole, RoleCopy> = {
   author: {
-    action: "Keep as-is — note for sign-off",
-    badge: "Kept — noted for sign-off",
+    action: "Keep as-is, with a note for sign-off",
+    badge: "Kept, with a note for sign-off",
     reasonLabel: "Reason for keeping as-is",
     justificationLabel: "Why keep this as-is? (note for your approver)",
     justificationPlaceholder:
-      "Explain your reasoning for the s21 approver — what you considered and why you think the flag doesn't need a change. This note travels to sign-off; it isn't approval.",
+      "Explain your reasoning for the s21 approver: what you considered and why you think the flag doesn't need a change. This note travels to sign-off; it isn't approval.",
     personLabel: "Author",
     personPlaceholder: "Your name or initials",
   },
@@ -94,7 +94,7 @@ export const ROLE_COPY: Record<DecisionRole, RoleCopy> = {
     reasonLabel: "Reason for overriding",
     justificationLabel: "Why is overriding this the right call?",
     justificationPlaceholder:
-      "Explain the basis for accepting this risk — what you considered and why the flag doesn't need to change the promotion. This is the record the FCA expects for an approval decision.",
+      "Explain the basis for accepting this risk: what you considered and why the flag doesn't need to change the promotion. This is the record the FCA expects for an approval decision.",
     personLabel: "Approver",
     personPlaceholder: "Name or initials",
   },

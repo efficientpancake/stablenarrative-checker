@@ -1330,3 +1330,33 @@ a.logo {
   text-decoration: none;
   color: inherit;
 }
+
+/* ── Triage: "Fix before sign-off" / "Worth a look" ─────────────────────────
+   Results are grouped by urgency, split on the checker's own verdict rule.
+   A dot on each heading carries the group's weight at a glance. */
+.triage-fix h2::before,
+.triage-look h2::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.triage-fix h2::before {
+  background: var(--status-error);
+}
+.triage-look h2::before {
+  background: var(--border-strong);
+}
+.triage-note {
+  margin: -6px 0 14px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  max-width: 72ch;
+}
+/* Missing elements now share a list with flags, so they need their own pill. */
+.pill-missing {
+  background: color-mix(in srgb, var(--status-warning) 16%, transparent);
+  color: var(--status-warning);
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckResult, Severity, Verdict } from "@/lib/types";
+import { CheckResult, Flag, MissingElement, Severity, Verdict } from "@/lib/types";
 import {
   DecisionLogEntry,
   DecisionRole,
@@ -32,6 +32,30 @@ interface Overridable {
   issue: string;
   severity?: string;
 }
+
+// ── Triage ──────────────────────────────────────────────────────────────────
+// Rohan's feedback: separate what needs attention now from what doesn't. The
+// dividing line is the checker's own verdict rule (lib/ruleset.ts:
+// "non_compliant" = any high or medium flag, or any missing required element).
+// Anything that on its own makes the copy non-compliant goes under "Fix before
+// sign-off". Low flags don't change the verdict, so they go under "Worth a
+// look". Nothing is called optional: a low flag is still a flag, and the
+// approver still decides.
+
+/** One issue, flag or missing element, ready to render in its group. */
+interface Entry {
+  key: string;
+  item: Overridable;
+  flag?: Flag;
+  missing?: MissingElement;
+  /** Display order: high, then missing, then medium, then low. */
+  rank: number;
+}
+
+const RANK: Record<Severity, number> = { high: 0, medium: 2, low: 3 };
+const MISSING_RANK = 1;
+/** Ranks below this make the copy non-compliant on their own. */
+const LOOK_RANK = 3;
 
 export default function Results({
   result,
@@ -87,6 +111,85 @@ export default function Results({
     setLog(removeEntry(entryId));
   }
 
+  // Sort is stable, so the engine's own order holds within each severity.
+  const entries: Entry[] = [
+    ...flags.map((f, i) => ({
+      key: `flag-${i}`,
+      flag: f,
+      rank: RANK[f.severity],
+      item: {
+        itemType: "flag" as const,
+        itemKey: flagKey(f.rule, f.quote),
+        rule: f.rule,
+        quote: f.quote,
+        issue: f.issue,
+        severity: f.severity,
+      },
+    })),
+    ...missing_required.map((m, i) => ({
+      key: `missing-${i}`,
+      missing: m,
+      rank: MISSING_RANK,
+      item: {
+        itemType: "missing" as const,
+        itemKey: missingKey(m.element),
+        rule: m.element,
+        quote: m.requirement,
+        issue: m.why,
+      },
+    })),
+  ].sort((a, b) => a.rank - b.rank);
+  const fix = entries.filter((e) => e.rank < LOOK_RANK);
+  const look = entries.filter((e) => e.rank >= LOOK_RANK);
+
+  function renderCard(e: Entry) {
+    const accepted = entryFor(e.item.itemKey);
+    const zone = (
+      <OverrideZone
+        role={role}
+        accepted={accepted}
+        open={openKey === e.item.itemKey}
+        onOpen={() => setOpenKey(e.item.itemKey)}
+        onCancel={() => setOpenKey(null)}
+        onSave={(fields) => saveOverride(e.item, fields)}
+        onUndo={() => accepted && undo(accepted.id)}
+      />
+    );
+    if (e.flag) {
+      const f = e.flag;
+      return (
+        <li
+          key={e.key}
+          className={`card sev-${f.severity}${accepted ? " accepted" : ""}`}
+        >
+          <div className="card-head">
+            <SeverityPill severity={f.severity} />
+            <span className="rule">{f.rule}</span>
+          </div>
+          <blockquote>“{f.quote}”</blockquote>
+          <p className="issue">{f.issue}</p>
+          {zone}
+        </li>
+      );
+    }
+    const m = e.missing as MissingElement;
+    return (
+      <li key={e.key} className={`card sev-missing${accepted ? " accepted" : ""}`}>
+        <div className="card-head">
+          <span className="pill pill-missing">Missing</span>
+          <span className="rule strong">{m.element}</span>
+        </div>
+        <p className="issue">
+          <strong>Required:</strong> {m.requirement}
+        </p>
+        <p className="issue">
+          <strong>Why flagged:</strong> {m.why}
+        </p>
+        {zone}
+      </li>
+    );
+  }
+
   return (
     <>
       <section className="results">
@@ -94,106 +197,48 @@ export default function Results({
           <span className="dot" />
           <span className="verdict-text">{VERDICT_LABEL[overall_verdict]}</span>
           <span className="verdict-count">
-            {flags.length} flag{flags.length === 1 ? "" : "s"} ·{" "}
-            {missing_required.length} missing element
-            {missing_required.length === 1 ? "" : "s"}
+            {fix.length === 0
+              ? "Nothing to fix before sign-off"
+              : `${fix.length} to fix before sign-off`}
+            {look.length > 0 ? ` · ${look.length} worth a look` : ""}
           </span>
           <RoleToggle role={role} onChange={setRole} />
         </div>
 
-        <div className="col">
+        <div className="col triage-fix">
           <h2>
-            Prohibited content
-            <span className="tag">{flags.length}</span>
+            Fix before sign-off
+            <span className="tag">{fix.length}</span>
           </h2>
-          {flags.length === 0 ? (
-            <p className="empty">No prohibited content flagged.</p>
+          <p className="triage-note">
+            Each of these makes the copy non-compliant on its own.{" "}
+            {role === "approver"
+              ? "Change the copy, or record why the risk is acceptable."
+              : "Change the copy, or keep it and note why for your approver."}
+          </p>
+          {fix.length === 0 ? (
+            <p className="empty">Nothing here makes the copy non-compliant.</p>
           ) : (
-            <ul className="cards">
-              {flags.map((f, i) => {
-                const item: Overridable = {
-                  itemType: "flag",
-                  itemKey: flagKey(f.rule, f.quote),
-                  rule: f.rule,
-                  quote: f.quote,
-                  issue: f.issue,
-                  severity: f.severity,
-                };
-                const accepted = entryFor(item.itemKey);
-                return (
-                  <li
-                    key={i}
-                    className={`card sev-${f.severity}${accepted ? " accepted" : ""}`}
-                  >
-                    <div className="card-head">
-                      <SeverityPill severity={f.severity} />
-                      <span className="rule">{f.rule}</span>
-                    </div>
-                    <blockquote>“{f.quote}”</blockquote>
-                    <p className="issue">{f.issue}</p>
-                    <OverrideZone
-                      role={role}
-                      accepted={accepted}
-                      open={openKey === item.itemKey}
-                      onOpen={() => setOpenKey(item.itemKey)}
-                      onCancel={() => setOpenKey(null)}
-                      onSave={(fields) => saveOverride(item, fields)}
-                      onUndo={() => accepted && undo(accepted.id)}
-                    />
-                  </li>
-                );
-              })}
-            </ul>
+            <ul className="cards">{fix.map(renderCard)}</ul>
           )}
         </div>
 
-        <div className="col">
-          <h2>
-            Missing required elements
-            <span className="tag">{missing_required.length}</span>
-          </h2>
-          {missing_required.length === 0 ? (
-            <p className="empty">Nothing mandatory appears to be missing.</p>
-          ) : (
-            <ul className="cards">
-              {missing_required.map((m, i) => {
-                const item: Overridable = {
-                  itemType: "missing",
-                  itemKey: missingKey(m.element),
-                  rule: m.element,
-                  quote: m.requirement,
-                  issue: m.why,
-                };
-                const accepted = entryFor(item.itemKey);
-                return (
-                  <li
-                    key={i}
-                    className={`card sev-missing${accepted ? " accepted" : ""}`}
-                  >
-                    <div className="card-head">
-                      <span className="rule strong">{m.element}</span>
-                    </div>
-                    <p className="issue">
-                      <strong>Required:</strong> {m.requirement}
-                    </p>
-                    <p className="issue">
-                      <strong>Why flagged:</strong> {m.why}
-                    </p>
-                    <OverrideZone
-                      role={role}
-                      accepted={accepted}
-                      open={openKey === item.itemKey}
-                      onOpen={() => setOpenKey(item.itemKey)}
-                      onCancel={() => setOpenKey(null)}
-                      onSave={(fields) => saveOverride(item, fields)}
-                      onUndo={() => accepted && undo(accepted.id)}
-                    />
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
+        {look.length > 0 && (
+          <div className="col triage-look">
+            <h2>
+              Worth a look
+              <span className="tag">{look.length}</span>
+            </h2>
+            <p className="triage-note">
+              Minor points. None of these makes the copy non-compliant on its
+              own,{" "}
+              {role === "approver"
+                ? "so you can judge them in context."
+                : "and your approver may accept them."}
+            </p>
+            <ul className="cards">{look.map(renderCard)}</ul>
+          </div>
+        )}
       </section>
 
       <DecisionLog entries={log} onChange={setLog} />
