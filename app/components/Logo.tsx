@@ -1,10 +1,13 @@
+import Link from "next/link";
+
 // The wordmark. A single rounded "compliance check" mark carries the accent;
 // the word itself stays high-contrast neutral so it reads as a considered brand,
 // not accent-colored text. Inline SVG so it inherits the theme tokens and needs
-// no asset request.
+// no asset request. It links home to the landing page, so a tester inside the
+// checker always has a way back to the front of the site.
 export default function Logo() {
   return (
-    <span className="logo" aria-label="StableNarrative">
+    <Link href="/" className="logo" aria-label="StableNarrative home">
       <svg
         className="logo-mark"
         width="22"
@@ -25,6 +28,6 @@ export default function Logo() {
       <span className="logo-word" aria-hidden="true">
         StableNarrative
       </span>
-    </span>
+    </Link>
   );
 }

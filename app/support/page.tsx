@@ -154,7 +154,7 @@ export default function Support() {
               you for taking the time.
             </p>
             <div className="actions">
-              <Link href="/" className="button-link primary">
+              <Link href="/app" className="button-link primary">
                 Back to the checker
               </Link>
               <button
@@ -266,7 +266,7 @@ export default function Support() {
                 {sending && <span className="spinner" />}
                 {sending ? "Sending…" : "Send report"}
               </button>
-              <Link href="/" className="button-link ghost">
+              <Link href="/app" className="button-link ghost">
                 Cancel
               </Link>
             </div>

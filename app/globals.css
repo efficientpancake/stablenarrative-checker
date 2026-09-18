@@ -1324,3 +1324,9 @@ blockquote {
 .outcomes-more {
   margin: 12px 0 0;
 }
+
+/* The logo is a link home. Strip link styling so it still reads as a wordmark. */
+a.logo {
+  text-decoration: none;
+  color: inherit;
+}
