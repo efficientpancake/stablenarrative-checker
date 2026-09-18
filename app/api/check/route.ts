@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import mammoth from "mammoth";
 import { runCheck, Attachment } from "@/lib/engine";
 import { resolveAccess } from "@/lib/access";
+import { getMedium } from "@/lib/medium";
 
 export const runtime = "nodejs";
 
@@ -30,6 +31,9 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     let copy = typeof body.copy === "string" ? body.copy : "";
+    // Where the copy is going decides which warning is required (a text post
+    // takes the short form). Unknown or absent falls back to web, the fullest.
+    const medium = getMedium(body.medium);
 
     // The client sends at most one file, tagged with its kind. Images and PDFs
     // go to the model as visual attachments; DOCX is extracted to text here;
@@ -64,7 +68,7 @@ export async function POST(req: NextRequest) {
       return bad("Provide marketing copy, a file, or both.");
     }
 
-    const result = await runCheck(copy, attachment, access.key);
+    const result = await runCheck(copy, attachment, access.key, medium);
 
     // Central measurement backup — one structured line per check in the server
     // logs, independent of the client-side usage log a tester might not export.
@@ -74,6 +78,7 @@ export async function POST(req: NextRequest) {
         evt: "check",
         at: new Date().toISOString(),
         tester: access.label ?? "unknown",
+        medium: medium.id,
         verdict: result.overall_verdict,
         flags: result.flags.length,
         missing: result.missing_required.length,

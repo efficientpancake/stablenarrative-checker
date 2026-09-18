@@ -9,8 +9,17 @@
 // curated ruleset in ruleset.ts — flipping the flag is the whole swap.
 // ============================================================================
 
-import { CheckResult, Flag, MissingElement, Verdict } from "./types";
-import { PRESCRIBED_RISK_WARNING, SYSTEM_PROMPT } from "./ruleset";
+import {
+  CheckResult,
+  Flag,
+  MissingElement,
+  RewriteOption,
+  RewriteResult,
+  Tone,
+  Verdict,
+} from "./types";
+import { PRESCRIBED_RISK_WARNING, SYSTEM_PROMPT, rewritePrompt } from "./ruleset";
+import { Medium, SHORT_RISK_WARNING } from "./medium";
 
 // The stub scans ONLY high-signal safety/reassurance words — the ones whose
 // breach doesn't depend on surrounding context. Generic adjectives from the full
@@ -46,7 +55,10 @@ export type Attachment =
 export async function runCheck(
   input: string,
   attachment?: Attachment,
-  apiKey?: string
+  apiKey?: string,
+  /** Where the copy is going. The required warning depends on it (a text post
+   *  takes the short form), so the checker is told. See lib/medium.ts. */
+  medium?: Medium
 ): Promise<CheckResult> {
   const text = input.trim();
   // Only short-circuit when there is genuinely nothing to check — an attachment
@@ -59,7 +71,7 @@ export async function runCheck(
     };
   }
   // The stub is text-only and can't see attachments; the live engine handles both.
-  return USE_STUB ? stubEngine(text) : callClaude(text, attachment, apiKey);
+  return USE_STUB ? stubEngine(text) : callClaude(text, attachment, apiKey, medium);
 }
 
 // ============================================================================
@@ -69,7 +81,8 @@ export async function runCheck(
 async function callClaude(
   input: string,
   attachment: Attachment | undefined,
-  apiKey?: string
+  apiKey?: string,
+  medium?: Medium
 ): Promise<CheckResult> {
   const key = apiKey ?? process.env.ANTHROPIC_API_KEY;
   if (!key) throw new Error("No Anthropic API key available");
@@ -77,13 +90,14 @@ async function callClaude(
   // Build the user turn. With a visual attachment (image or PDF), ask the model
   // to read the text FROM it and also judge visual prominence (the v2 check).
   const label = attachment?.kind === "pdf" ? "PDF (it may be a designed document)" : "IMAGE";
+  const channel = medium ? `\n\nCHANNEL: this promotion is ${medium.checkContext}` : "";
   const promptText = attachment
     ? `Check this UK crypto marketing promotion for FCA financial-promotion compliance. The promotion is the ATTACHED ${label}. Read ALL text visible in it, assess it against the rules, AND assess the VISUAL PROMINENCE of required elements (risk-warning size, placement, contrast, legibility).${
         input
-          ? `\n\nThe advertiser also supplied this caption/copy alongside it — treat it as part of the same promotion:\n---\n${input}\n---`
+          ? `\n\nThe advertiser also supplied this caption/copy alongside it. Treat it as part of the same promotion:\n---\n${input}\n---`
           : ""
-      }\n\nReturn ONLY the JSON.`
-    : `Check this UK crypto marketing copy for FCA financial-promotion compliance. Return ONLY the JSON.\n\n---\n${input}\n---`;
+      }${channel}\n\nReturn ONLY the JSON.`
+    : `Check this UK crypto marketing copy for FCA financial-promotion compliance.${channel}\n\nReturn ONLY the JSON.\n\n---\n${input}\n---`;
 
   let attachmentBlock: Record<string, unknown> | null = null;
   if (attachment?.kind === "image") {
@@ -102,6 +116,24 @@ async function callClaude(
     ? [attachmentBlock, { type: "text", text: promptText }]
     : promptText;
 
+  const { data } = await requestJSON<CheckResult>(SYSTEM_PROMPT, userContent, key);
+  return data;
+}
+
+// ============================================================================
+// The model call, shared by the check and the rewrite.
+// ============================================================================
+export interface ModelUsage {
+  input_tokens: number;
+  output_tokens: number;
+}
+
+/** One Messages API call that must come back as a single JSON object. */
+async function requestJSON<T>(
+  system: string,
+  userContent: unknown,
+  key: string
+): Promise<{ data: T; usage: ModelUsage | null }> {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -111,24 +143,17 @@ async function callClaude(
     },
     body: JSON.stringify({
       model: "claude-sonnet-5",
-      // Ceiling, not a spend — billed on actual output tokens, so headroom is
+      // Ceiling, not a spend: billed on actual output tokens, so headroom is
       // free. 16000 is the safe max for a non-streaming request (above ~16K
-      // risks an HTTP timeout and would need streaming). Plenty for a tweet
-      // check (flags + missing elements only — no rewrite).
+      // risks an HTTP timeout and would need streaming).
       max_tokens: 16000,
-      // A compliance check is a fast, structured JSON extraction — no chain-of-
-      // thought needed. Disabling thinking keeps the response a single text
-      // block (on Sonnet 5, adaptive thinking is ON by default and would make
-      // the first content block a thinking block, breaking the parse below) and
-      // avoids paying for thinking tokens on every check.
+      // Both calls are structured JSON: no chain-of-thought needed. Disabling
+      // thinking keeps the response a single text block (on Sonnet 5, adaptive
+      // thinking is ON by default and would put a thinking block first,
+      // breaking the parse below) and avoids paying for thinking tokens.
       thinking: { type: "disabled" },
-      system: SYSTEM_PROMPT,
-      messages: [
-        {
-          role: "user",
-          content: userContent,
-        },
-      ],
+      system,
+      messages: [{ role: "user", content: userContent }],
     }),
   });
 
@@ -136,20 +161,115 @@ async function callClaude(
     throw new Error(`Anthropic API error ${res.status}: ${await res.text()}`);
   }
 
-  const data = await res.json();
-  // Pull the first text block rather than assuming content[0] — the response
-  // may carry non-text blocks first depending on model settings.
+  const body = await res.json();
+  // Pull the first text block rather than assuming content[0].
   const raw: string =
-    (Array.isArray(data?.content)
-      ? data.content.find((b: { type?: string }) => b?.type === "text")?.text
+    (Array.isArray(body?.content)
+      ? body.content.find((b: { type?: string }) => b?.type === "text")?.text
       : undefined) ?? "";
   const start = raw.indexOf("{");
   const end = raw.lastIndexOf("}");
   if (start === -1 || end === -1) {
     throw new Error(`Model did not return JSON. Raw response: ${raw.slice(0, 200)}`);
   }
-  const parsed = JSON.parse(raw.slice(start, end + 1)) as CheckResult;
-  return parsed;
+  return { data: JSON.parse(raw.slice(start, end + 1)) as T, usage: body?.usage ?? null };
+}
+
+// ============================================================================
+// REWRITES (Phase 3): three compliant options on demand.
+// ============================================================================
+export interface RewriteIssues {
+  flags: { quote: string; rule: string; issue: string }[];
+  missing: { element: string; requirement: string }[];
+}
+
+export async function runRewrite(
+  copy: string,
+  medium: Medium,
+  issues: RewriteIssues,
+  apiKey?: string
+): Promise<{ result: RewriteResult; usage: ModelUsage | null; dropped: number }> {
+  const key = apiKey ?? process.env.ANTHROPIC_API_KEY;
+  if (!key) throw new Error("No Anthropic API key available");
+
+  const lines = [
+    ...issues.flags.map((f) => `- ${f.rule}: "${f.quote}". ${f.issue}`),
+    ...issues.missing.map((m) => `- Missing: ${m.element}. ${m.requirement}`),
+  ];
+  const user =
+    `ORIGINAL COPY:\n---\n${copy}\n---\n\n` +
+    `ISSUES FOUND BY THE COMPLIANCE CHECK:\n${lines.length ? lines.join("\n") : "- None listed."}\n\n` +
+    `Return ONLY the JSON.`;
+
+  const { data, usage } = await requestJSON<Partial<RewriteResult>>(
+    rewritePrompt(medium.directive),
+    user,
+    key
+  );
+  const { result, dropped } = validateRewrite(data, medium);
+  return { result, usage, dropped };
+}
+
+const TONES: Tone[] = ["careful", "balanced", "bold"];
+
+/** Straighten quote marks and collapse whitespace so a verbatim-warning check
+ *  isn't defeated by a curly apostrophe or a line break. */
+function norm(text: string): string {
+  return text.replace(/[\u2018\u2019]/g, "'").replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+/** Does this option carry the exact prescribed warning the channel takes? */
+function carriesWarning(text: string, medium: Medium): boolean {
+  const t = norm(text);
+  switch (medium.warning) {
+    case "full-link":
+      return t.includes(norm(PRESCRIBED_RISK_WARNING)) && t.includes("take 2 mins to learn more");
+    case "full":
+      return t.includes(norm(PRESCRIBED_RISK_WARNING));
+    case "short":
+      return t.includes(norm(SHORT_RISK_WARNING));
+    case "on-image":
+      return true; // the warning is carried on the image, not in the caption
+  }
+}
+
+/** The last line of defence before a rewrite reaches the screen: every option
+ *  must carry the channel's exact warning and fit its character limit. Options
+ *  that don't are dropped; if none survive, say so plainly (Mark W). */
+export function validateRewrite(
+  raw: Partial<RewriteResult> | null | undefined,
+  medium: Medium
+): { result: RewriteResult; dropped: number } {
+  const options: unknown[] = Array.isArray(raw?.options) ? raw!.options : [];
+  const kept: RewriteOption[] = [];
+  let dropped = 0;
+  for (const tone of TONES) {
+    const o = options.find(
+      (x): x is { tone: string; text: string; note?: unknown } =>
+        !!x &&
+        typeof x === "object" &&
+        (x as { tone?: unknown }).tone === tone &&
+        typeof (x as { text?: unknown }).text === "string" &&
+        !!(x as { text: string }).text.trim()
+    );
+    if (!o) continue;
+    const text = o.text.trim();
+    const fits = !medium.maxChars || text.length <= medium.maxChars;
+    if (carriesWarning(text, medium) && fits) {
+      const note = typeof o.note === "string" && o.note.trim() ? o.note.trim() : null;
+      kept.push({ tone, text, note });
+    } else {
+      dropped++;
+    }
+  }
+  const modelReason =
+    typeof raw?.cannot_fit === "string" && raw.cannot_fit.trim() ? raw.cannot_fit.trim() : null;
+  const cannot_fit =
+    kept.length === 0
+      ? modelReason ??
+        `We couldn't write a compliant version that fits a ${medium.noun}. Try a longer format, or cut the message down to one claim.`
+      : null;
+  return { result: { options: kept, cannot_fit }, dropped };
 }
 
 // ============================================================================

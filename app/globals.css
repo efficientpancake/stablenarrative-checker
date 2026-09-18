@@ -1280,3 +1280,200 @@ blockquote {
     font-size: 27px;
   }
 }
+
+/* ── Channel picker ("Where's this going?") ─────────────────────────────────
+   Decides which risk warning applies, what a fix inserts and how long a
+   rewrite may be. */
+.medium-row {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.medium-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.medium-select {
+  font: inherit;
+  font-size: 16px;
+  color: var(--text-primary);
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  padding: 8px 12px;
+}
+.medium-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.medium-note {
+  flex: 1 1 100%;
+  margin: 0;
+}
+
+/* ── One-click fix on a result card ─────────────────────────────────────── */
+.fix {
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: var(--accent-soft);
+  border-radius: var(--radius-control);
+}
+.fix-suggest {
+  margin: 0 0 10px;
+  font-size: 16.5px;
+  color: var(--text-primary);
+}
+.fix-label {
+  font-weight: 600;
+  color: var(--accent-ink);
+}
+.fix-hint {
+  margin: 8px 0 0;
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+.fix-hint:first-of-type {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+.fix-applied {
+  background: var(--status-success-soft);
+}
+.fix-done {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--status-success);
+}
+
+/* After any fix: nudge to check the edited draft before it goes anywhere. */
+.edited-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+  margin: -12px 0 24px;
+  padding: 14px 18px;
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: var(--radius);
+}
+.edited-banner p {
+  margin: 0;
+  font-size: 16.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+  flex: 1 1 280px;
+}
+
+/* ── Rewrites: Careful / Balanced / Bold ────────────────────────────────── */
+.rewrites {
+  margin-top: 36px;
+  padding: 22px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.rewrites-title {
+  margin: 0 0 6px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.rewrites-sub {
+  margin: 0 0 16px;
+  font-size: 16.5px;
+  color: var(--text-secondary);
+  max-width: 44em;
+}
+.rewrites-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 16.5px;
+  color: var(--text-secondary);
+}
+/* The button spinner is white-on-purple; on a card it needs the purple ink. */
+.spinner-ink {
+  border-color: var(--accent-soft);
+  border-top-color: var(--accent);
+}
+.rewrites-cannot {
+  padding: 14px 16px;
+  background: var(--status-warning-soft);
+  border-radius: var(--radius-control);
+}
+.rewrites-cannot-title {
+  margin: 0 0 4px;
+  font-size: 16.5px;
+  font-weight: 600;
+  color: var(--status-warning);
+}
+.rewrites-cannot-body {
+  margin: 0;
+  font-size: 16.5px;
+  color: var(--text-primary);
+}
+.rewrite-list {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.rewrite-card {
+  background: var(--bg-page);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card);
+  padding: 16px 18px;
+}
+.rewrite-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin-bottom: 10px;
+}
+.rewrite-tone {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--accent-ink);
+}
+.rewrite-desc {
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+.rewrite-text {
+  white-space: pre-wrap;
+  font-size: 17px;
+  color: var(--text-primary);
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  padding: 12px 14px;
+}
+.rewrite-note {
+  margin: 10px 0 0;
+  font-size: 15.5px;
+  color: var(--text-secondary);
+}
+.rewrite-note strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.rewrite-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+}

@@ -13,6 +13,10 @@ export interface Flag {
   /** Plain-English explanation of why it breaches. */
   issue: string;
   severity: Severity;
+  /** One-click fix: replacement for the quoted words. "" means delete them.
+   *  null (or absent) means no text edit can cure it, e.g. a visual-prominence
+   *  problem. See lib/fixes.ts. */
+  fix?: string | null;
 }
 
 export interface MissingElement {
@@ -22,10 +26,35 @@ export interface MissingElement {
   requirement: string;
   /** Why it's flagged as absent. */
   why: string;
+  /** One-click fix: the text to add. Ignored for the risk warning, which is
+   *  always inserted from the rulebook (lib/medium.ts), never from the model. */
+  fix?: string | null;
 }
 
 export interface CheckResult {
   overall_verdict: Verdict;
   flags: Flag[];
   missing_required: MissingElement[];
+}
+
+// ── Rewrites (Phase 3) ──────────────────────────────────────────────────────
+/** All three tones are compliant. They differ only in how much marketing
+ *  voice they keep: careful is the easiest to sign off, bold the liveliest. */
+export type Tone = "careful" | "balanced" | "bold";
+
+export interface RewriteOption {
+  tone: Tone;
+  /** The copy itself, ready to publish in the chosen channel. */
+  text: string;
+  /** What must accompany it but isn't part of it, e.g. "the warning text must
+   *  link to the risk summary" or "the image must carry the warning". */
+  note?: string | null;
+}
+
+export interface RewriteResult {
+  options: RewriteOption[];
+  /** Set when no compliant version fits the channel. Mark W (31 Jul): some
+   *  messages can't be made compliant within a tweet, and the tool should say
+   *  so rather than hand back something that doesn't fit. */
+  cannot_fit: string | null;
 }

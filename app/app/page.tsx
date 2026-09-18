@@ -7,6 +7,8 @@ import { recordCheck, resetSession } from "@/lib/usageLog";
 import { rememberPiece } from "@/lib/outcomeLog";
 import Results from "@/app/components/Results";
 import ApprovalOutcomes from "@/app/components/ApprovalOutcomes";
+import Rewrites from "@/app/components/Rewrites";
+import { MEDIA, MediumId, DEFAULT_MEDIUM, getMedium } from "@/lib/medium";
 import UsagePanel from "@/app/components/UsagePanel";
 import ThemeToggle from "@/app/components/ThemeToggle";
 import Logo from "@/app/components/Logo";
@@ -81,6 +83,14 @@ export default function Home() {
   // The piece currently being worked (its usage session). Not yet sent to an
   // approver, so the "did it get signed off?" list leaves it out.
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  // Where the copy is going. It decides which risk warning is required, what a
+  // one-click fix inserts, and how long a rewrite may be. See lib/medium.ts.
+  const [medium, setMedium] = useState<MediumId>(DEFAULT_MEDIUM);
+  // Bumped on every check, so results and their applied fixes start fresh.
+  const [checkId, setCheckId] = useState(0);
+  // Fixes and rewrites edit text. A check that included an image or PDF can't
+  // be fixed by editing the copy box, so they're hidden for those.
+  const [checkedHadAttachment, setCheckedHadAttachment] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   // Access gate. null = still checking; true = unlocked (or app is ungated);
@@ -191,7 +201,8 @@ export default function Home() {
     setActiveSessionId(null);
   }
 
-  async function check() {
+  async function check(textOverride?: string) {
+    const text = textOverride ?? copy;
     setLoading(true);
     setError(null);
     setResult(null);
@@ -205,7 +216,7 @@ export default function Home() {
           "content-type": "application/json",
           "x-access-code": localStorage.getItem(STORAGE_KEY) ?? "",
         },
-        body: JSON.stringify({ copy, file }),
+        body: JSON.stringify({ copy: text, file, medium }),
       });
       const data = await res.json();
       if (res.status === 401) {
@@ -217,9 +228,11 @@ export default function Home() {
       if (!res.ok) throw new Error(data.error || "Check failed");
       const checked = data as CheckResult;
       setResult(checked);
+      setCheckedHadAttachment(!!attachment);
+      setCheckId((n) => n + 1);
       setCheckedPromotion(
-        copy.trim()
-          ? copy.trim()
+        text.trim()
+          ? text.trim()
           : attachment
           ? `[Attached ${attachment.kind}: ${attachment.name}]`
           : ""
@@ -230,7 +243,7 @@ export default function Home() {
         verdict: checked.overall_verdict,
         flags: checked.flags.length,
         missing: checked.missing_required.length,
-        chars: copy.trim().length,
+        chars: text.trim().length,
       });
       // Remember this piece so the tester can report its sign-off outcome
       // later. The preview label stays on this device; see lib/outcomeLog.ts.
@@ -238,7 +251,7 @@ export default function Home() {
       if (sessionId) {
         rememberPiece(
           sessionId,
-          copy.trim() ||
+          text.trim() ||
             (attachment ? `Attached ${attachment.kind}: ${attachment.name}` : "")
         );
         setActiveSessionId(sessionId);
@@ -369,6 +382,25 @@ export default function Home() {
               rows={10}
             />
 
+            <div className="medium-row">
+              <label htmlFor="medium" className="medium-label">
+                Where&apos;s this going?
+              </label>
+              <select
+                id="medium"
+                className="medium-select"
+                value={medium}
+                onChange={(e) => setMedium(e.target.value as MediumId)}
+              >
+                {MEDIA.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+              <p className="hint medium-note">{getMedium(medium).note}</p>
+            </div>
+
             <div className="attach">
               <input
                 ref={fileInput}
@@ -446,7 +478,7 @@ export default function Home() {
             <div className="actions">
               <button
                 className="primary"
-                onClick={check}
+                onClick={() => check()}
                 disabled={loading || !canCheck}
               >
                 {loading && <span className="spinner" />}
@@ -514,7 +546,35 @@ export default function Home() {
 
       {error && <div className="error">Error: {error}</div>}
 
-      {result && <Results result={result} promotion={checkedPromotion} />}
+      {result && (
+        <Results
+          key={checkId}
+          result={result}
+          promotion={checkedPromotion}
+          draft={copy}
+          medium={getMedium(medium)}
+          editable={!checkedHadAttachment && copy.trim().length > 0}
+          onApply={(next) => setCopy(next)}
+          onRecheck={() => check()}
+        />
+      )}
+
+      {result &&
+        !checkedHadAttachment &&
+        checkedPromotion &&
+        result.overall_verdict !== "compliant" && (
+          <Rewrites
+            key={`rewrites-${checkId}`}
+            copy={checkedPromotion}
+            medium={getMedium(medium)}
+            result={result}
+            onUse={(text) => {
+              setCopy(text);
+              document.getElementById("copy")?.scrollIntoView({ block: "center" });
+              check(text);
+            }}
+          />
+        )}
 
       <UsagePanel tick={usageTick} />
 

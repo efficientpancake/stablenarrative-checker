@@ -16,6 +16,14 @@ import {
   missingKey,
   removeEntry,
 } from "@/lib/decisionLog";
+import { Medium } from "@/lib/medium";
+import {
+  applyFlagFix,
+  applyMissingFix,
+  canApplyFlagFix,
+  isRiskWarning,
+  missingFixText,
+} from "@/lib/fixes";
 import DecisionLog from "./DecisionLog";
 
 const VERDICT_LABEL: Record<Verdict, string> = {
@@ -61,12 +69,37 @@ const LOOK_RANK = 3;
 export default function Results({
   result,
   promotion,
+  draft = "",
+  medium,
+  editable = false,
+  onApply,
+  onRecheck,
 }: {
   result: CheckResult;
   /** The promotion that was checked — stored on each override for a self-contained record. */
   promotion: string;
+  /** The copy box as it is NOW. Fixes apply to this, so several fixes stack. */
+  draft?: string;
+  /** Where the copy is going: decides which risk warning a fix inserts. */
+  medium?: Medium;
+  /** False when the check included an image or PDF: a fix can only edit text. */
+  editable?: boolean;
+  /** Writes the fixed draft back into the copy box. */
+  onApply?: (next: string) => void;
+  /** Runs the check again on the edited draft. */
+  onRecheck?: () => void;
 }) {
   const { overall_verdict, flags, missing_required } = result;
+
+  // Fixes applied from these results (by item key). A fresh check remounts the
+  // component, so this never carries over to a different set of results.
+  const [applied, setApplied] = useState<Set<string>>(new Set());
+
+  function markApplied(itemKey: string, next: string | null) {
+    if (next === null || !onApply) return;
+    onApply(next);
+    setApplied((prev) => new Set(prev).add(itemKey));
+  }
 
   // The full decision log, loaded from this device. Kept here so both the
   // per-item "accepted" state and the log panel below stay in sync.
@@ -171,11 +204,24 @@ export default function Results({
             <span className={`flagged flagged-${f.severity}`}>{f.quote}</span>
           </blockquote>
           <p className="issue">{f.issue}</p>
+          {editable && typeof f.fix === "string" && (
+            <FixZone
+              kind="flag"
+              suggestion={f.fix}
+              applied={applied.has(e.item.itemKey)}
+              available={canApplyFlagFix(draft, f.quote)}
+              onApply={() =>
+                markApplied(e.item.itemKey, applyFlagFix(draft, f.quote, f.fix as string))
+              }
+            />
+          )}
           {zone}
         </li>
       );
     }
     const m = e.missing as MissingElement;
+    // The risk warning always comes from the rulebook for this channel.
+    const missingText = medium ? missingFixText(m.element, m.fix, medium) : null;
     return (
       <li key={e.key} className={`card sev-missing${accepted ? " accepted" : ""}`}>
         <div className="card-head">
@@ -188,6 +234,18 @@ export default function Results({
         <p className="issue">
           <strong>Why flagged:</strong> {m.why}
         </p>
+        {editable && medium && missingText && (
+          <FixZone
+            kind="missing"
+            suggestion={missingText}
+            warningFor={isRiskWarning(m.element) ? medium.noun : undefined}
+            applied={applied.has(e.item.itemKey)}
+            available
+            onApply={() =>
+              markApplied(e.item.itemKey, applyMissingFix(draft, m.element, missingText))
+            }
+          />
+        )}
         {zone}
       </li>
     );
@@ -207,6 +265,20 @@ export default function Results({
           </span>
           <RoleToggle role={role} onChange={setRole} />
         </div>
+
+        {applied.size > 0 && (
+          <div className="edited-banner" role="status">
+            <p>
+              You&apos;ve changed your draft. Check it again to confirm it&apos;s
+              clean before it goes to your approver.
+            </p>
+            {onRecheck && (
+              <button type="button" className="primary" onClick={onRecheck}>
+                Check again
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="col triage-fix">
           <h2>
@@ -246,6 +318,71 @@ export default function Results({
 
       <DecisionLog entries={log} onChange={setLog} />
     </>
+  );
+}
+
+/** The one-click fix on a card. Shows exactly what will change before the
+ *  click, applies it to the draft, then confirms. It only ever edits the
+ *  marketer's own draft, which is checked again and still goes to the approver. */
+function FixZone({
+  kind,
+  suggestion,
+  warningFor,
+  applied,
+  available,
+  onApply,
+}: {
+  kind: "flag" | "missing";
+  /** Replacement words ("" = delete them), or the text to add. */
+  suggestion: string;
+  /** Set when the fix inserts the prescribed warning: the channel's name. */
+  warningFor?: string;
+  applied: boolean;
+  /** False when the flagged words are no longer in the draft. */
+  available: boolean;
+  onApply: () => void;
+}) {
+  if (applied) {
+    return (
+      <div className="fix fix-applied">
+        <p className="fix-done">✓ Applied to your draft</p>
+      </div>
+    );
+  }
+  const deletes = kind === "flag" && suggestion === "";
+  return (
+    <div className="fix">
+      <p className="fix-suggest">
+        <span className="fix-label">
+          {deletes
+            ? "Suggested fix:"
+            : kind === "missing"
+            ? "Suggested addition:"
+            : "Suggested wording:"}
+        </span>{" "}
+        {deletes ? "remove these words." : suggestion}
+      </p>
+      {warningFor && (
+        <p className="fix-hint">
+          The FCA&apos;s prescribed risk warning for a {warningFor},
+          word for word. It goes at the start of your copy.
+        </p>
+      )}
+      <button
+        type="button"
+        className="ghost fix-apply"
+        disabled={!available}
+        onClick={onApply}
+      >
+        Apply fix
+      </button>
+      {!available && (
+        <p className="fix-hint">
+          These words aren&apos;t in your draft any more, so there&apos;s nothing to
+          swap.
+        </p>
+      )}
+    </div>
   );
 }
 
