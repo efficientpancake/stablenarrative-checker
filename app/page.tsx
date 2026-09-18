@@ -93,8 +93,7 @@ export default function Landing() {
               </li>
               <li>
                 <span>
-                  We run your first check together, on screen, with your own copy
-                  or ours.
+                  We run your first check together, on screen, with your copy.
                 </span>
               </li>
               <li>
