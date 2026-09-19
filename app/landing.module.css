@@ -114,6 +114,7 @@
 .keep {
   display: inline-block;
   color: var(--lp-accent-ink);
+  font-weight: 600;
 }
 .lede {
   margin: 0 0 12px;

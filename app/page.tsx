@@ -48,10 +48,12 @@ export default function Landing() {
         <main>
           <div className={styles.hero}>
             <span className={styles.eyebrow}>
-              In early access with a small group of marketers
+              In early access
             </span>
             <h1 className={styles.title}>
-              Catch FCA breaches in your crypto marketing copy{" "}
+              Catch FCA breaches in
+              <br />
+              your crypto marketing copy{" "}
               <span className={styles.keep}>before your approver does.</span>
             </h1>
             <p className={styles.lede}>
