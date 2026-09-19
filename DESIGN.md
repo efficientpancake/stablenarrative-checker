@@ -120,3 +120,4 @@ Before proposing any font, color or format change, check it against this list.
 | 2026-09-18 | Rejected serif "proofing desk" and heavy bold directions | Founder: unreadable for dyslexic readers, "vibe coded", "aggressive" |
 | 2026-09-19 | Landing headline: Inter 500, break after "in"; purple "before your approver does." in Inter 600 | Chosen from six headline options; tried Arial first but it looked the same as Inter |
 | 2026-09-19 | Landing headline letter-spacing -0.02em (headline only) | Founder: "FCA" looked loose and unrefined; chosen from six refinements. Body text keeps default spacing for readability |
+| 2026-09-19 | Landing motion: hero fades up line by line (once), sections fade in on scroll (once), product demo in a white app window on a drifting lavender panel | Founder picked options 2, 3 and B. Red/amber stay inside the white window, never on purple. No moving or shimmering text; all motion off under prefers-reduced-motion |

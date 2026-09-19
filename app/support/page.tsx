@@ -9,7 +9,7 @@ import Logo from "@/app/components/Logo";
 // is exactly when they need to reach us — a support form behind a broken gate
 // is useless. Nothing here spends API tokens.
 
-const SUPPORT_EMAIL = "support.61loi@simplelogin.com";
+const SUPPORT_EMAIL = "support@stablenarrative.com";
 const LABEL_KEY = "sn_access_label";
 
 const KINDS = [

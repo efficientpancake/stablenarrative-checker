@@ -252,6 +252,21 @@
   font-size: 15px;
   color: var(--lp-muted);
 }
+/* Contact line. The link is set apart by color and weight, not underlining
+   (dyslexia rule, DESIGN.md). */
+.contact {
+  margin: 0 0 12px;
+  font-size: 16px;
+  color: var(--lp-text);
+}
+.contactLink {
+  color: var(--lp-accent-ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+.contactLink:hover {
+  color: var(--lp-accent-hover);
+}
 
 @media (max-width: 760px) {
   .wrap {
@@ -277,4 +292,203 @@
   .cta {
     display: flex;
   }
+}
+
+/* ── Motion (chosen 19 Sept 2026) ────────────────────────────────────────────
+   Option 2: the hero fades up line by line, once, then stays still.
+   Option 3: sections fade in once as they scroll into view (RevealOnScroll).
+   Option B: the product demo on a drifting panel.
+   Nothing moves while it is being read, except the demo loop, which sits in
+   its own panel. All of it is off for visitors set to reduce motion. */
+.title .line {
+  display: block;
+}
+@keyframes enterUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+.hero [data-enter] {
+  animation: enterUp 0.9s ease both;
+}
+.hero [data-enter="1"] { animation-delay: 0.1s; }
+.hero [data-enter="2"] { animation-delay: 0.25s; }
+.hero [data-enter="3"] { animation-delay: 0.55s; }
+.hero [data-enter="4"] { animation-delay: 0.7s; }
+.hero [data-enter="5"] { animation-delay: 0.8s; }
+.hero [data-enter="6"] { animation-delay: 0.85s; }
+
+:global(html.reveal-ready) .root [data-reveal] {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+:global(html.reveal-ready) .root [data-reveal]:global(.revealed) {
+  opacity: 1;
+  transform: none;
+}
+
+/* Product demo stage */
+.demoStage {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  padding: 44px;
+  margin: 0 0 72px;
+  background: var(--lp-accent-soft);
+}
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(48px);
+  opacity: 0.75;
+}
+.blob1 {
+  width: 340px; height: 340px; left: -60px; top: -80px;
+  background: #C4B2FA;
+  animation: drift1 22s ease-in-out infinite alternate;
+}
+.blob2 {
+  width: 300px; height: 300px; right: 10%; top: 20px;
+  background: #7C3AED; opacity: 0.35;
+  animation: drift2 26s ease-in-out infinite alternate;
+}
+.blob3 {
+  width: 380px; height: 380px; left: 35%; bottom: -200px;
+  background: #F4F2FB;
+  animation: drift3 19s ease-in-out infinite alternate;
+}
+@keyframes drift1 { to { transform: translate(260px, 90px) scale(1.15); } }
+@keyframes drift2 { to { transform: translate(-280px, 60px) scale(0.9); } }
+@keyframes drift3 { to { transform: translate(180px, -120px) scale(1.1); } }
+:global(html[data-theme="dark"]) .blob { opacity: 0.35; }
+
+/* The app window. Its colors are fixed (not theme tokens): it is a picture
+   of the product, and the red and amber must sit on white, never on purple. */
+.win {
+  position: relative;
+  max-width: 880px;
+  margin: 0 auto;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #FFFFFF;
+  color: #24222C;
+  border: 1px solid #E6E4EA;
+  box-shadow: 0 1px 2px rgba(36, 34, 44, 0.06), 0 12px 32px rgba(36, 34, 44, 0.1);
+}
+.winBar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 14px;
+  background: #F6F6F8;
+  border-bottom: 1px solid #ECEBEF;
+}
+.winBar i {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #DCDAE2;
+}
+.winBar span {
+  margin-left: 10px;
+  font-size: 14px;
+  color: #6B6875;
+}
+.winBody {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 18px;
+  padding: 20px;
+}
+.demoCopy {
+  font-size: 18px;
+  line-height: 1.6;
+}
+.demoLabel {
+  display: block;
+  font-size: 14px;
+  color: #6B6875;
+  margin-bottom: 8px;
+}
+.demoFlags {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.mark {
+  border-radius: 4px;
+  padding: 1px 2px;
+}
+.mark1 { animation: markErr 9s infinite; }
+.mark2 { animation: markWarn 9s infinite; }
+@keyframes markErr {
+  0%, 6% { background: transparent; color: inherit; }
+  10%, 88% { background: #FBE7E4; color: #B3261E; }
+  94%, 100% { background: transparent; color: inherit; }
+}
+@keyframes markWarn {
+  0%, 21% { background: transparent; color: inherit; }
+  25%, 88% { background: #FBEFD9; color: #8A5300; }
+  94%, 100% { background: transparent; color: inherit; }
+}
+.chip {
+  border: 1px solid #ECEBEF;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 15px;
+  background: #FFFFFF;
+}
+.chip b { font-weight: 600; }
+.chip1 { animation: chipIn1 9s infinite; }
+.chip2 { animation: chipIn2 9s infinite; }
+.chip3 { animation: chipIn3 9s infinite; }
+.verdict {
+  font-size: 16px;
+  font-weight: 600;
+  color: #B3261E;
+  animation: verdictIn 9s infinite;
+}
+@keyframes chipIn1 {
+  0%, 11% { opacity: 0; transform: translateX(14px); }
+  16%, 88% { opacity: 1; transform: none; }
+  94%, 100% { opacity: 0; }
+}
+@keyframes chipIn2 {
+  0%, 27% { opacity: 0; transform: translateX(14px); }
+  32%, 88% { opacity: 1; transform: none; }
+  94%, 100% { opacity: 0; }
+}
+@keyframes chipIn3 {
+  0%, 38% { opacity: 0; transform: translateX(14px); }
+  43%, 88% { opacity: 1; transform: none; }
+  94%, 100% { opacity: 0; }
+}
+@keyframes verdictIn {
+  0%, 47% { opacity: 0; }
+  52%, 88% { opacity: 1; }
+  94%, 100% { opacity: 0; }
+}
+.dot {
+  display: inline-block;
+  width: 8px; height: 8px; border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: middle;
+  background: #B3261E;
+}
+.dotWarn { background: #8A5300; }
+
+@media (max-width: 760px) {
+  .demoStage { padding: 18px; margin-bottom: 48px; }
+  .winBody { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero [data-enter],
+  .blob,
+  .mark1, .mark2,
+  .chip1, .chip2, .chip3,
+  .verdict {
+    animation: none;
+  }
+  /* The still frame shows the finished check. */
+  .mark1 { background: #FBE7E4; color: #B3261E; }
+  .mark2 { background: #FBEFD9; color: #8A5300; }
 }
