@@ -107,7 +107,9 @@
   font-size: clamp(2rem, 3.6vw, 2.6rem);
   font-weight: 500;
   line-height: 1.22;
-  letter-spacing: 0;
+  /* Large Inter reads loose; a touch of tightening (headline only, never
+     body text) makes it look finished. Chosen 19 Sept 2026, option 2. */
+  letter-spacing: -0.02em;
 }
 /* Keeps "before your approver does." together: if it doesn't fit on the
    current line, the whole phrase moves down rather than stranding "before". */

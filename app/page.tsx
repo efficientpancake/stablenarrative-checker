@@ -59,10 +59,10 @@ export default function Landing() {
             <p className={styles.lede}>
               StableNarrative checks your copy against the FCA&apos;s cryptoasset
               financial promotion rules in seconds. Every flag comes with the rule
-              behind it, so what you send for sign-off needs fewer rounds of edits.
+              behind it.
             </p>
             <p className={styles.signoff}>
-              Your s21 approver still signs off, every time.
+              Compliance signs off in one round instead of five.
             </p>
             <BookButton />
             <span className={styles.ctaNote}>Free while we&apos;re testing.</span>
@@ -72,8 +72,8 @@ export default function Landing() {
             <h2 className={styles.h2}>We&apos;re calibrating it against real sign-offs</h2>
             <p className={styles.sectionIntro}>
               We&apos;re looking for marketers at UK crypto firms whose promotions go
-              through compliance approval. You use the tool on real campaigns. We
-              learn from what your approver decides.
+              through compliance approval. You&apos;ll be able to use our proprietary
+              tool for free on real campaigns.
             </p>
             <div className={styles.deal}>
               <div className={styles.dealBox}>
@@ -122,8 +122,7 @@ export default function Landing() {
               Spend less time going back and forth with compliance
             </h2>
             <p className={styles.sectionIntro}>
-              Places in the testing group are limited, so we can speak to every
-              tester personally.
+              Limited spots, so we can speak to every tester personally.
             </p>
             <BookButton />
           </section>
