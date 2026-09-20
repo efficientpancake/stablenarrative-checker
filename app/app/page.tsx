@@ -20,7 +20,7 @@ const STORAGE_KEY = "sn_access_code";
 const LABEL_KEY = "sn_access_label";
 
 const EXAMPLE = `Own uranium on-chain with xU3O8. A safe, guaranteed store of value backed by real assets.
-Don't miss out — get in before the next bull run.`;
+Don't miss out, get in before the next bull run.`;
 
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 const MAX_FILE_BYTES = 4 * 1024 * 1024; // 4 MB (stays under Netlify's request limit after base64)
@@ -347,11 +347,7 @@ export default function Home() {
         </div>
         <h1>FCA compliance check for UK crypto marketing copy</h1>
         <p className="sub">
-          Paste your copy or upload the promotion: image, PDF, Word, or text.
-          It gets checked against FCA financial-promotion rules (prohibited
-          content, missing required elements, and visual prominence of the risk
-          warning) before it reaches your s21 approver. This tool pre-cleans;
-          the human approver always signs off.
+          Paste or upload your promotion, get it checked against FCA rules, then send it to your s21 approver for sign-off.
         </p>
       </header>
 

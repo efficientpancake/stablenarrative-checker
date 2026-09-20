@@ -71,7 +71,40 @@ export async function runCheck(
     };
   }
   // The stub is text-only and can't see attachments; the live engine handles both.
-  return USE_STUB ? stubEngine(text) : callClaude(text, attachment, apiKey, medium);
+  const result = USE_STUB
+    ? stubEngine(text)
+    : await callClaude(text, attachment, apiKey, medium);
+  return cleanCheck(result);
+}
+
+// ── No em dashes on screen (Rohan's feedback) ───────────────────────────────
+// The prompts ask for none, but the model still slips them in, so every piece
+// of AI-written prose is cleaned here before it reaches the screen. A dash
+// becomes a comma. Left alone on purpose: "quote" (the user's own words,
+// matched against their draft by the one-click fixes) and "rule" (part of the
+// decision-log keys; lib/decisionLog.ts displayRule() shows it with " · ").
+export function noEmDash(s: string): string {
+  return s
+    .replace(/\s*\u2014\s*/g, ", ")
+    .replace(/\s+\u2013\s+/g, ", ")
+    .replace(/^,\s*/, "")
+    .replace(/,\s*([.,;:!?])/g, "$1")
+    .replace(/,\s*$/, "");
+}
+
+function cleanCheck(r: CheckResult): CheckResult {
+  const fix = (f: string | null | undefined) => (typeof f === "string" ? noEmDash(f) : f);
+  return {
+    ...r,
+    flags: r.flags.map((f) => ({ ...f, issue: noEmDash(f.issue), fix: fix(f.fix) })),
+    missing_required: r.missing_required.map((m) => ({
+      ...m,
+      element: noEmDash(m.element),
+      requirement: noEmDash(m.requirement),
+      why: noEmDash(m.why),
+      fix: fix(m.fix),
+    })),
+  };
 }
 
 // ============================================================================
@@ -253,17 +286,17 @@ export function validateRewrite(
         !!(x as { text: string }).text.trim()
     );
     if (!o) continue;
-    const text = o.text.trim();
+    const text = noEmDash(o.text.trim());
     const fits = !medium.maxChars || text.length <= medium.maxChars;
     if (carriesWarning(text, medium) && fits) {
-      const note = typeof o.note === "string" && o.note.trim() ? o.note.trim() : null;
+      const note = typeof o.note === "string" && o.note.trim() ? noEmDash(o.note.trim()) : null;
       kept.push({ tone, text, note });
     } else {
       dropped++;
     }
   }
   const modelReason =
-    typeof raw?.cannot_fit === "string" && raw.cannot_fit.trim() ? raw.cannot_fit.trim() : null;
+    typeof raw?.cannot_fit === "string" && raw.cannot_fit.trim() ? noEmDash(raw.cannot_fit.trim()) : null;
   const cannot_fit =
     kept.length === 0
       ? modelReason ??

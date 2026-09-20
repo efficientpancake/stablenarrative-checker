@@ -38,6 +38,8 @@
   /* Brand: her purple. --accent fills buttons and marks; --accent-ink is the
      slightly deeper shade for purple TEXT so it stays readable on lavender. */
   --accent: #7C3AED;
+  /* The logo's line. Lighter in dark mode, per the brand kit. */
+  --logo-line: #7C3AED;
   --accent-hover: #6D2FDB;
   --accent-ink: #6D2FDB;
   --accent-text: #FFFFFF;
@@ -70,6 +72,7 @@
   --text-secondary: #AAA6B6;
   --text-placeholder: #8F8B9C;
   --accent: #7C3AED;
+  --logo-line: #C4B2FA;
   --accent-hover: #8B4CF2;
   --accent-ink: #C4B2FA;
   --accent-text: #FFFFFF;
@@ -126,14 +129,16 @@ a.logo {
   text-decoration: none;
   color: inherit;
 }
-.logo-mark {
+/* The lockup scales by height; the width follows the artwork. */
+.logo-lockup {
   display: block;
-  border-radius: 7px;
+  height: 38px;
+  width: auto;
 }
-.logo-word {
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--text-primary);
+@media (max-width: 560px) {
+  .logo-lockup {
+    height: 32px;
+  }
 }
 /* Right side of the header: page navigation (Support / Back to checker)
    next to the theme toggle. */

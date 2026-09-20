@@ -62,11 +62,11 @@ export default function UsagePanel({ tick }: { tick: number }) {
             label="reached clean"
           />
           <Stat
-            value={s.avgRoundsToClean == null ? "—" : s.avgRoundsToClean.toFixed(1)}
+            value={s.avgRoundsToClean == null ? "None yet" : s.avgRoundsToClean.toFixed(1)}
             label="avg rounds to clean"
           />
           <Stat
-            value={o.answered === 0 ? "—" : `${o.approvedFirstTime}/${o.answered}`}
+            value={o.answered === 0 ? "None yet" : `${o.approvedFirstTime}/${o.answered}`}
             label="approved first time"
           />
           <Stat value={s.flagsCaught} label="flags caught" />

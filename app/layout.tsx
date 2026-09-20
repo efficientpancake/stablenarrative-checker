@@ -15,7 +15,7 @@ const inter = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "StableNarrative FCA Compliance Checker",
+  title: "StableNarrative",
   description:
     "Grammarly for FCA compliance. Paste UK crypto marketing copy and check it against FCA financial-promotion rules before it reaches your s21 approver.",
 };

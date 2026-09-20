@@ -132,6 +132,8 @@ The marketer can apply each fix with one click. It edits their draft, which is t
 - A fix must never add a new claim, number, promise or fact that is not already in the copy. Where a compliant fix needs a fact you don't have (a fee, a data source, a date), use a clearly marked placeholder in square brackets, e.g. "[fee: X%]" or "[source, date]".
 - Use no em dashes in a fix.
 
+WRITING STYLE: in every "issue", "requirement", "why" and "fix" you write, use no em dashes. Use a comma, colon or full stop instead. (Rule names may keep their existing format.)
+
 ════════════════════════════════════════════════════════════════════
 OVERALL VERDICT
 ════════════════════════════════════════════════════════════════════
