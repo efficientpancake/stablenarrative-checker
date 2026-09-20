@@ -205,16 +205,30 @@ export default function Results({
           </blockquote>
           <p className="issue">{f.issue}</p>
           {editable && typeof f.fix === "string" && (
-            <FixZone
+            <Suggestion
               kind="flag"
               suggestion={f.fix}
               applied={applied.has(e.item.itemKey)}
-              available={canApplyFlagFix(draft, f.quote)}
-              onApply={() =>
-                markApplied(e.item.itemKey, applyFlagFix(draft, f.quote, f.fix as string))
-              }
             />
           )}
+          <CardActions
+            apply={
+              editable && typeof f.fix === "string" && !applied.has(e.item.itemKey)
+                ? {
+                    available: canApplyFlagFix(draft, f.quote),
+                    onApply: () =>
+                      markApplied(
+                        e.item.itemKey,
+                        applyFlagFix(draft, f.quote, f.fix as string)
+                      ),
+                  }
+                : null
+            }
+            role={role}
+            accepted={!!accepted}
+            formOpen={openKey === e.item.itemKey}
+            onOpen={() => setOpenKey(e.item.itemKey)}
+          />
           {zone}
         </li>
       );
@@ -228,24 +242,42 @@ export default function Results({
           <span className="pill pill-missing">Missing</span>
           <span className="rule strong">{m.element}</span>
         </div>
-        <p className="issue">
-          <strong>Required:</strong> {m.requirement}
-        </p>
-        <p className="issue">
-          <strong>Why flagged:</strong> {m.why}
-        </p>
+        <dl className="facts">
+          <div className="fact">
+            <dt>Required</dt>
+            <dd>{m.requirement}</dd>
+          </div>
+          <div className="fact">
+            <dt>Why flagged</dt>
+            <dd>{m.why}</dd>
+          </div>
+        </dl>
         {editable && medium && missingText && (
-          <FixZone
+          <Suggestion
             kind="missing"
             suggestion={missingText}
             warningFor={isRiskWarning(m.element) ? medium.noun : undefined}
             applied={applied.has(e.item.itemKey)}
-            available
-            onApply={() =>
-              markApplied(e.item.itemKey, applyMissingFix(draft, m.element, missingText))
-            }
           />
         )}
+        <CardActions
+          apply={
+            editable && medium && missingText && !applied.has(e.item.itemKey)
+              ? {
+                  available: true,
+                  onApply: () =>
+                    markApplied(
+                      e.item.itemKey,
+                      applyMissingFix(draft, m.element, missingText)
+                    ),
+                }
+              : null
+          }
+          role={role}
+          accepted={!!accepted}
+          formOpen={openKey === e.item.itemKey}
+          onOpen={() => setOpenKey(e.item.itemKey)}
+        />
         {zone}
       </li>
     );
@@ -321,16 +353,14 @@ export default function Results({
   );
 }
 
-/** The one-click fix on a card. Shows exactly what will change before the
- *  click, applies it to the draft, then confirms. It only ever edits the
- *  marketer's own draft, which is checked again and still goes to the approver. */
-function FixZone({
+/** The suggested change, shown before anything is clicked: the panel only.
+ *  The buttons live in CardActions below it, so one row of a card holds every
+ *  action (Rohan, 20 Sept: the card was cluttered and hard to scan). */
+function Suggestion({
   kind,
   suggestion,
   warningFor,
   applied,
-  available,
-  onApply,
 }: {
   kind: "flag" | "missing";
   /** Replacement words ("" = delete them), or the text to add. */
@@ -338,51 +368,131 @@ function FixZone({
   /** Set when the fix inserts the prescribed warning: the channel's name. */
   warningFor?: string;
   applied: boolean;
-  /** False when the flagged words are no longer in the draft. */
-  available: boolean;
-  onApply: () => void;
 }) {
   if (applied) {
     return (
-      <div className="fix fix-applied">
-        <p className="fix-done">✓ Applied to your draft</p>
-      </div>
+      <p className="suggest-done">
+        <CheckIcon />
+        Applied to your draft
+      </p>
     );
   }
   const deletes = kind === "flag" && suggestion === "";
   return (
-    <div className="fix">
-      <p className="fix-suggest">
-        <span className="fix-label">
+    <div className="suggest">
+      <BulbIcon />
+      <div>
+        <p className="suggest-title">
           {deletes
-            ? "Suggested fix:"
+            ? "Suggested fix"
             : kind === "missing"
-            ? "Suggested addition:"
-            : "Suggested wording:"}
-        </span>{" "}
-        {deletes ? "remove these words." : suggestion}
-      </p>
-      {warningFor && (
-        <p className="fix-hint">
-          The FCA&apos;s prescribed risk warning for a {warningFor},
-          word for word. It goes at the start of your copy.
+            ? "Suggested addition"
+            : "Suggested wording"}
         </p>
-      )}
-      <button
-        type="button"
-        className="ghost fix-apply"
-        disabled={!available}
-        onClick={onApply}
-      >
-        Apply fix
-      </button>
-      {!available && (
-        <p className="fix-hint">
-          These words aren&apos;t in your draft any more, so there&apos;s nothing to
-          swap.
+        <p className="suggest-text">
+          {deletes ? "Remove these words." : suggestion}
         </p>
-      )}
+        {warningFor && (
+          <p className="suggest-note">
+            The FCA&apos;s prescribed risk warning for a {warningFor}, word for
+            word. It goes at the start of your copy.
+          </p>
+        )}
+      </div>
     </div>
+  );
+}
+
+/** Every action on a card, in one row: the fix on the left as the single
+ *  filled button, the reasoned "keep it" decision on the right. */
+function CardActions({
+  apply,
+  role,
+  accepted,
+  formOpen,
+  onOpen,
+}: {
+  /** Null when there is nothing to apply: no text fix, or already applied. */
+  apply: { available: boolean; onApply: () => void } | null;
+  role: DecisionRole;
+  accepted: boolean;
+  formOpen: boolean;
+  onOpen: () => void;
+}) {
+  // A logged decision or an open form replaces the row entirely.
+  if (accepted || formOpen) return null;
+  const copy = ROLE_COPY[role];
+  return (
+    <div className="card-actions">
+      {apply && (
+        <button
+          type="button"
+          className="primary card-apply"
+          disabled={!apply.available}
+          onClick={apply.onApply}
+        >
+          Apply fix
+        </button>
+      )}
+      {apply && !apply.available && (
+        <p className="card-actions-note">
+          These words aren&apos;t in your draft any more, so there&apos;s nothing
+          to swap.
+        </p>
+      )}
+      <button type="button" className="ghost keep-btn" onClick={onOpen}>
+        <NoteIcon />
+        <span className="keep-lines">
+          <span className="keep-title">{copy.action}</span>
+          <span className="keep-sub">{copy.actionSub}</span>
+        </span>
+      </button>
+    </div>
+  );
+}
+
+function BulbIcon() {
+  return (
+    <svg className="suggest-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path
+        d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.5.4.8 1 .9 1.6l.1.6h5.2l.1-.6c.1-.6.4-1.2.9-1.6A6 6 0 0 0 12 3Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function NoteIcon() {
+  return (
+    <svg className="keep-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path
+        d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z M14 3v5h5 M9 13h6 M9 17h4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg className="done-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path
+        d="M5 12.5l4.2 4.2L19 7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
@@ -456,15 +566,7 @@ function OverrideZone({
     );
   }
 
-  if (!open) {
-    return (
-      <div className="override-bar">
-        <button type="button" className="ghost override-open" onClick={onOpen}>
-          {ROLE_COPY[role].action}
-        </button>
-      </div>
-    );
-  }
+  if (!open) return null;
 
   return <OverrideForm role={role} onCancel={onCancel} onSave={onSave} />;
 }

@@ -61,6 +61,8 @@ export const REASONS_BY_ROLE: Record<DecisionRole, readonly string[]> = {
  *  badge, and every form label are drawn from here so the two roles never
  *  borrow each other's language. */
 export interface RoleCopy {
+  /** Second line on the keep-as-is button: what the click actually records. */
+  actionSub: string;
   /** Primary action on a flagged card. */
   action: string;
   /** Badge on a logged entry. */
@@ -79,7 +81,8 @@ export interface RoleCopy {
 
 export const ROLE_COPY: Record<DecisionRole, RoleCopy> = {
   author: {
-    action: "Keep as-is, with a note for sign-off",
+    action: "Keep as-is",
+    actionSub: "Add a note for sign-off",
     badge: "Kept, with a note for sign-off",
     reasonLabel: "Reason for keeping as-is",
     justificationLabel: "Why keep this as-is? (note for your approver)",
@@ -89,7 +92,8 @@ export const ROLE_COPY: Record<DecisionRole, RoleCopy> = {
     personPlaceholder: "Your name or initials",
   },
   approver: {
-    action: "Accept risk / override",
+    action: "Accept the risk",
+    actionSub: "Record the override",
     badge: "Risk accepted",
     reasonLabel: "Reason for overriding",
     justificationLabel: "Why is overriding this the right call?",
