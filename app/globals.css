@@ -424,14 +424,6 @@ button.ghost:disabled {
   position: relative;
   overflow: hidden;
 }
-.verdict::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-}
 .verdict .dot {
   width: 11px;
   height: 11px;
@@ -448,21 +440,18 @@ button.ghost:disabled {
   font-size: 16px;
   font-variant-numeric: tabular-nums;
 }
-.verdict-non_compliant::before,
 .verdict-non_compliant .dot {
   background: var(--status-error);
 }
 .verdict-non_compliant .verdict-text {
   color: var(--status-error);
 }
-.verdict-compliant::before,
 .verdict-compliant .dot {
   background: var(--status-success);
 }
 .verdict-compliant .verdict-text {
   color: var(--status-success);
 }
-.verdict-needs_review::before,
 .verdict-needs_review .dot {
   background: var(--status-warning);
 }
@@ -831,12 +820,8 @@ blockquote {
 .log-entry {
   background: var(--bg-card);
   border: 1px solid var(--border-default);
-  border-left: 4px solid var(--status-success);
   border-radius: var(--radius-card);
   padding: 14px 16px;
-}
-.log-entry-author {
-  border-left-color: var(--accent);
 }
 .log-entry-top {
   display: flex;
