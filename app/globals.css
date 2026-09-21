@@ -1564,16 +1564,6 @@ html[data-theme="dark"]:has(main[data-mode="training"]) body {
   --border-strong: #4E4533;
 }
 
-.mode-toggle-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin: 0 0 18px;
-}
-.mode-toggle-row .role-toggle {
-  margin-left: 0;
-}
 .mode-badge {
   display: inline-flex;
   align-items: center;

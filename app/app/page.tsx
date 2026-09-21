@@ -377,13 +377,22 @@ export default function Home() {
         <div className="brand">
           <Logo />
           <div className="brand-actions">
+            {/* One switch, in the header: "Training mode" goes in, "Pre-check"
+                comes back out to the real check. */}
+            <button
+              type="button"
+              className="ghost mode-switch"
+              aria-pressed={training}
+              onClick={() => switchMode(training ? "live" : "training")}
+            >
+              {training ? "Pre-check" : "Training mode"}
+            </button>
             <Link href="/support" className="button-link ghost">
               Support
             </Link>
             <ThemeToggle />
           </div>
         </div>
-        <ModeToggle mode={mode} onChange={switchMode} />
         {training ? (
           <>
             <h1>Training mode</h1>
@@ -664,34 +673,5 @@ export default function Home() {
         .
       </footer>
     </main>
-  );
-}
-
-/** Live vs training, as a choice you make on purpose. Styled like the role
- *  switch so the two controls read as one family. */
-function ModeToggle({
-  mode,
-  onChange,
-}: {
-  mode: CheckMode;
-  onChange: (mode: CheckMode) => void;
-}) {
-  return (
-    <div className="mode-toggle-row">
-      <div className="role-toggle" role="group" aria-label="Check mode">
-        {(["live", "training"] as CheckMode[]).map((m) => (
-          <button
-            key={m}
-            type="button"
-            className={`role-toggle-opt${mode === m ? " is-active" : ""}`}
-            aria-pressed={mode === m}
-            onClick={() => onChange(m)}
-          >
-            {MODE_COPY[m].label}
-          </button>
-        ))}
-      </div>
-      {mode === "training" && <span className="mode-badge">Nothing here is recorded</span>}
-    </div>
   );
 }

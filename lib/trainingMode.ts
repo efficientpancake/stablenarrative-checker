@@ -43,7 +43,7 @@ export type CheckMode = "live" | "training";
 /** What each mode is called, and the one-line promise it makes. */
 export const MODE_COPY: Record<CheckMode, { label: string; promise: string }> = {
   live: {
-    label: "Live check",
+    label: "Pre-check",
     promise:
       "Checks real copy on its way to your s21 approver. Decisions you record here become part of the audit trail.",
   },
