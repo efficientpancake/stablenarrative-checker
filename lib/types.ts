@@ -17,6 +17,10 @@ export interface Flag {
    *  null (or absent) means no text edit can cure it, e.g. a visual-prominence
    *  problem. See lib/fixes.ts. */
   fix?: string | null;
+  /** TRAINING ONLY. What the words actually promise a reader who believes them.
+   *  Mark W's distinction: the lesson isn't that you can't say "guaranteed
+   *  store of value", it's that saying it implies capital security. */
+  implies?: string;
 }
 
 export interface MissingElement {
@@ -29,6 +33,8 @@ export interface MissingElement {
   /** One-click fix: the text to add. Ignored for the risk warning, which is
    *  always inserted from the rulebook (lib/medium.ts), never from the model. */
   fix?: string | null;
+  /** TRAINING ONLY. What the reader never finds out because this isn't there. */
+  not_learned?: string;
 }
 
 export interface CheckResult {

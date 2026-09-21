@@ -34,6 +34,9 @@ export async function POST(req: NextRequest) {
     // Where the copy is going decides which warning is required (a text post
     // takes the short form). Unknown or absent falls back to web, the fullest.
     const medium = getMedium(body.medium);
+    // Training runs ask for the two teaching fields. Anything other than the
+    // literal "training" is live, so a malformed client falls back to live.
+    const mode = body.mode === "training" ? "training" : "live";
 
     // The client sends at most one file, tagged with its kind. Images and PDFs
     // go to the model as visual attachments; DOCX is extracted to text here;
@@ -68,7 +71,7 @@ export async function POST(req: NextRequest) {
       return bad("Provide marketing copy, a file, or both.");
     }
 
-    const result = await runCheck(copy, attachment, access.key, medium);
+    const result = await runCheck(copy, attachment, access.key, medium, mode);
 
     // Central measurement backup — one structured line per check in the server
     // logs, independent of the client-side usage log a tester might not export.
@@ -79,6 +82,7 @@ export async function POST(req: NextRequest) {
         at: new Date().toISOString(),
         tester: access.label ?? "unknown",
         medium: medium.id,
+        mode,
         verdict: result.overall_verdict,
         flags: result.flags.length,
         missing: result.missing_required.length,

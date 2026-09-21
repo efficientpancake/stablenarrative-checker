@@ -209,3 +209,71 @@ OUTPUT: return ONLY this JSON, nothing else:
 }
 "note" is for what must accompany the copy but is not part of it (where the warning must sit, what an image must carry, what the warning must link to). Use null when nothing is needed. Never put a character count in a note: the app measures it. If the original is already compliant, still return three lightly polished options.`;
 }
+
+// ============================================================================
+// TRAINING ADDENDUM: appended to SYSTEM_PROMPT only when mode is "training".
+//
+// Live checks stay byte-identical, so none of this is in the base prompt. A
+// training run asks for two extra fields (Mark W, 31 Jul: "not just that you
+// can't say guaranteed store of value, saying it IMPLIES capital security").
+// The "show me what's right" half is the existing Suggest rewrites panel, so
+// the check itself costs only a little more in training than live.
+// ============================================================================
+export const TRAINING_ADDENDUM = `
+
+════════════════════════════════════════════════════════════════════
+TRAINING MODE: two ADDITIONAL fields
+════════════════════════════════════════════════════════════════════
+This run is a training exercise. No promotion is being approved and nothing is
+recorded. The reader is someone learning the rules, not clearing copy. Produce
+everything specified above, and ALSO:
+
+REQUIRED: every object in "flags" MUST include an "implies" key, and every
+object in "missing_required" MUST include a "not_learned" key. Output missing
+either key is invalid and will be rejected.
+
+1. On EVERY flag, add "implies": what the flagged words actually promise a
+   reader who takes them at face value. This is NOT a restatement of the rule
+   and NOT a repeat of "issue". Name the false impression itself.
+   - "guaranteed store of value" -> "that the money they put in is protected and
+     will hold its value, the same promise a savings account makes, which this
+     product cannot make."
+   - "backed by real assets" -> "that something tangible would be sold to repay
+     them if it failed. Without naming a custodian, reserve or audit, there is
+     nothing behind that impression."
+   Write it about the reader. One or two sentences. Plain English, no rule
+   citations: the citation is already in "rule".
+
+2. On EVERY missing_required element, add "not_learned": what the reader never
+   finds out because it isn't on the page, and what that costs them. One or two
+   sentences, same voice.
+
+Use no em dashes in either field.`;
+
+/** The full system prompt for a training run. The base prompt's OUTPUT schema
+ *  is REPLACED rather than appended to: with two schemas in one prompt the model
+ *  follows the first and drops "implies" from every flag. */
+export function trainingPrompt(): string {
+  const marker = SYSTEM_PROMPT.lastIndexOf("════════════════════════════════════════════════════════════════════\nOUTPUT");
+  const head = marker === -1 ? SYSTEM_PROMPT : SYSTEM_PROMPT.slice(0, marker);
+  return (
+    head +
+    TRAINING_ADDENDUM +
+    `
+
+════════════════════════════════════════════════════════════════════
+OUTPUT: return ONLY this JSON, nothing else:
+════════════════════════════════════════════════════════════════════
+{
+  "overall_verdict": "non_compliant | compliant | needs_review",
+  "flags": [
+    { "quote": "exact offending text", "rule": "short rule name + source doc", "issue": "plain-English why it breaches", "severity": "high | medium | low", "fix": "replacement for the quoted words, \\"\\" to delete them, or null", "implies": "what these words promise a reader who believes them" }
+  ],
+  "missing_required": [
+    { "element": "e.g. risk warning", "requirement": "what the rule requires", "why": "why it's flagged as absent", "fix": "exact text to add", "not_learned": "what the reader never finds out" }
+  ]
+}
+
+This is a training exercise, not a compliance review, and not legal advice.`
+  );
+}

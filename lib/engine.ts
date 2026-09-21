@@ -18,7 +18,7 @@ import {
   Tone,
   Verdict,
 } from "./types";
-import { PRESCRIBED_RISK_WARNING, SYSTEM_PROMPT, rewritePrompt } from "./ruleset";
+import { PRESCRIBED_RISK_WARNING, SYSTEM_PROMPT, rewritePrompt, trainingPrompt } from "./ruleset";
 import { Medium, SHORT_RISK_WARNING } from "./medium";
 
 // The stub scans ONLY high-signal safety/reassurance words — the ones whose
@@ -58,7 +58,10 @@ export async function runCheck(
   apiKey?: string,
   /** Where the copy is going. The required warning depends on it (a text post
    *  takes the short form), so the checker is told. See lib/medium.ts. */
-  medium?: Medium
+  medium?: Medium,
+  /** "training" appends TRAINING_ADDENDUM for the two teaching fields. Live
+   *  checks are unaffected: same prompt, same output, same cost. */
+  mode: "live" | "training" = "live"
 ): Promise<CheckResult> {
   const text = input.trim();
   // Only short-circuit when there is genuinely nothing to check — an attachment
@@ -73,7 +76,7 @@ export async function runCheck(
   // The stub is text-only and can't see attachments; the live engine handles both.
   const result = USE_STUB
     ? stubEngine(text)
-    : await callClaude(text, attachment, apiKey, medium);
+    : await callClaude(text, attachment, apiKey, medium, mode);
   return cleanCheck(result);
 }
 
@@ -96,13 +99,19 @@ function cleanCheck(r: CheckResult): CheckResult {
   const fix = (f: string | null | undefined) => (typeof f === "string" ? noEmDash(f) : f);
   return {
     ...r,
-    flags: r.flags.map((f) => ({ ...f, issue: noEmDash(f.issue), fix: fix(f.fix) })),
+    flags: r.flags.map((f) => ({
+      ...f,
+      issue: noEmDash(f.issue),
+      fix: fix(f.fix),
+      ...(typeof f.implies === "string" ? { implies: noEmDash(f.implies) } : {}),
+    })),
     missing_required: r.missing_required.map((m) => ({
       ...m,
       element: noEmDash(m.element),
       requirement: noEmDash(m.requirement),
       why: noEmDash(m.why),
       fix: fix(m.fix),
+      ...(typeof m.not_learned === "string" ? { not_learned: noEmDash(m.not_learned) } : {}),
     })),
   };
 }
@@ -115,7 +124,8 @@ async function callClaude(
   input: string,
   attachment: Attachment | undefined,
   apiKey?: string,
-  medium?: Medium
+  medium?: Medium,
+  mode: "live" | "training" = "live"
 ): Promise<CheckResult> {
   const key = apiKey ?? process.env.ANTHROPIC_API_KEY;
   if (!key) throw new Error("No Anthropic API key available");
@@ -149,7 +159,8 @@ async function callClaude(
     ? [attachmentBlock, { type: "text", text: promptText }]
     : promptText;
 
-  const { data } = await requestJSON<CheckResult>(SYSTEM_PROMPT, userContent, key);
+  const system = mode === "training" ? trainingPrompt() : SYSTEM_PROMPT;
+  const { data } = await requestJSON<CheckResult>(system, userContent, key);
   return data;
 }
 
@@ -205,7 +216,22 @@ async function requestJSON<T>(
   if (start === -1 || end === -1) {
     throw new Error(`Model did not return JSON. Raw response: ${raw.slice(0, 200)}`);
   }
-  return { data: JSON.parse(raw.slice(start, end + 1)) as T, usage: body?.usage ?? null };
+  return { data: parseModelJSON<T>(raw.slice(start, end + 1)), usage: body?.usage ?? null };
+}
+
+/** Parse the model's JSON, forgiving the one slip it makes on long outputs: a
+ *  trailing comma before a closing brace or bracket. Only tried after a strict
+ *  parse fails, so well-formed output is never touched. */
+function parseModelJSON<T>(text: string): T {
+  try {
+    return JSON.parse(text) as T;
+  } catch (first) {
+    try {
+      return JSON.parse(text.replace(/,(\s*[}\]])/g, "$1")) as T;
+    } catch {
+      throw first;
+    }
+  }
 }
 
 // ============================================================================

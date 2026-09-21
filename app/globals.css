@@ -1540,3 +1540,138 @@ blockquote {
   gap: 10px;
   margin-top: 12px;
 }
+
+/* ── Training mode ──────────────────────────────────────────────────────────
+   Mark W asked for it to look unmistakably different: "it changes the
+   background to yellow instead of grey". Warm paper instead of lavender, so
+   nobody mistakes a practice run for a real check. Purple stays the brand
+   colour for buttons and the logo; only the surfaces change. */
+html:has(main[data-mode="training"]),
+html:has(main[data-mode="training"]) body {
+  --bg-page: #FAF4E4;
+  --bg-card: #FFFCF4;
+  --bg-input: #FBF6EA;
+  --border-default: #EDE3C8;
+  --border-strong: #DECFA8;
+  background: var(--bg-page);
+}
+html[data-theme="dark"]:has(main[data-mode="training"]),
+html[data-theme="dark"]:has(main[data-mode="training"]) body {
+  --bg-page: #221E15;
+  --bg-card: #2A251B;
+  --bg-input: #2F2A1F;
+  --border-default: #3D3627;
+  --border-strong: #4E4533;
+}
+
+.mode-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0 0 18px;
+}
+.mode-toggle-row .role-toggle {
+  margin-left: 0;
+}
+.mode-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--status-warning);
+  background: var(--status-warning-soft);
+  border-radius: 6px;
+  padding: 3px 10px;
+}
+
+/* Mark's graduate-trainee exercise, as an instruction. */
+.training-brief {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius);
+  padding: 22px 24px;
+  margin-bottom: 28px;
+}
+.training-brief-title {
+  margin: 0 0 8px;
+  font-size: 21px;
+  font-weight: 600;
+}
+.training-brief-body {
+  margin: 0 0 16px;
+  max-width: 44em;
+  color: var(--text-secondary);
+}
+
+/* The lesson on each card. */
+.teaching {
+  margin-top: 16px;
+  display: grid;
+  gap: 10px;
+}
+.teaching-repeat {
+  margin: 0;
+  font-size: 15.5px;
+  font-weight: 600;
+  color: var(--status-warning);
+}
+.teaching-lesson {
+  padding: 14px 16px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+}
+.teaching-lesson-head {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--status-warning);
+}
+.teaching-lesson-body {
+  margin: 0;
+  font-size: 16.5px;
+  color: var(--text-primary);
+}
+.teaching-cost {
+  margin: 0;
+  font-size: 15.5px;
+  color: var(--text-secondary);
+}
+
+/* "Rules you keep breaking": only the learner ever sees this. */
+.weakspots {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius);
+  padding: 18px 22px;
+  margin-bottom: 20px;
+}
+.weakspots-title {
+  margin: 0 0 10px;
+  font-size: 18px;
+  font-weight: 600;
+}
+.weakspots-list {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.weakspots-item {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+}
+.weakspots-count {
+  min-width: 2.4em;
+  font-weight: 700;
+  color: var(--status-warning);
+  font-variant-numeric: tabular-nums;
+}
+.weakspots-note {
+  margin: 0;
+  font-size: 15px;
+  color: var(--text-secondary);
+}

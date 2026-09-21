@@ -38,7 +38,12 @@ export default function Rewrites({
   medium,
   result,
   onUse,
+  title = "Want a clean version?",
+  sub,
 }: {
+  /** Training calls this "what compliant looks like": same rewrites, taught. */
+  title?: string;
+  sub?: string;
   /** The copy that was checked. */
   copy: string;
   /** Where it's going: sets the warning and the length limit. */
@@ -85,12 +90,11 @@ export default function Rewrites({
   return (
     <section className="rewrites" aria-labelledby="rewrites-title">
       <h2 id="rewrites-title" className="rewrites-title">
-        Want a clean version?
+        {title}
       </h2>
       <p className="rewrites-sub">
-        Get three compliant rewrites for a {medium.noun}. They differ
-        in how much marketing voice they keep. Whichever you pick goes into your
-        draft and gets checked again.
+        {sub ??
+          `Get three compliant rewrites for a ${medium.noun}. They differ in how much marketing voice they keep. Whichever you pick goes into your draft and gets checked again.`}
       </p>
 
       {(state === "idle" || state === "error") && (

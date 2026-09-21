@@ -25,6 +25,8 @@ import {
   missingFixText,
 } from "@/lib/fixes";
 import DecisionLog from "./DecisionLog";
+import { CheckMode, SEVERITY_LESSON } from "@/lib/trainingMode";
+import { PracticeTally, ordinal, priorCount, weakSpots } from "@/lib/practiceLog";
 
 const VERDICT_LABEL: Record<Verdict, string> = {
   non_compliant: "Non-compliant",
@@ -74,6 +76,8 @@ export default function Results({
   editable = false,
   onApply,
   onRecheck,
+  mode = "live",
+  priorTallies = [],
 }: {
   result: CheckResult;
   /** The promotion that was checked — stored on each override for a self-contained record. */
@@ -88,8 +92,15 @@ export default function Results({
   onApply?: (next: string) => void;
   /** Runs the check again on the edited draft. */
   onRecheck?: () => void;
+  /** Live results carry decisions; training results carry lessons and record
+   *  nothing. See lib/trainingMode.ts for why the difference matters. */
+  mode?: CheckMode;
+  /** The learner's repeat-mistake tally BEFORE this run, so a card can say
+   *  "3rd time" without counting the run on screen. Training only. */
+  priorTallies?: PracticeTally[];
 }) {
   const { overall_verdict, flags, missing_required } = result;
+  const training = mode === "training";
 
   // Fixes applied from these results (by item key). A fresh check remounts the
   // component, so this never carries over to a different set of results.
@@ -116,6 +127,7 @@ export default function Results({
 
   // An override for THIS promotion + item, if one exists.
   function entryFor(itemKey: string): DecisionLogEntry | undefined {
+    if (training) return undefined;
     return log.find((e) => e.itemKey === itemKey && e.promotion === promotion);
   }
 
@@ -178,7 +190,7 @@ export default function Results({
 
   function renderCard(e: Entry) {
     const accepted = entryFor(e.item.itemKey);
-    const zone = (
+    const zone = training ? null : (
       <OverrideZone
         role={role}
         accepted={accepted}
@@ -204,6 +216,14 @@ export default function Results({
             <span className={`flagged flagged-${f.severity}`}>{f.quote}</span>
           </blockquote>
           <p className="issue">{f.issue}</p>
+          {training && (
+            <TeachingZone
+              itemType="flag"
+              severity={f.severity}
+              lesson={f.implies}
+              repeats={priorCount(priorTallies, f.rule)}
+            />
+          )}
           {editable && typeof f.fix === "string" && (
             <Suggestion
               kind="flag"
@@ -212,6 +232,7 @@ export default function Results({
             />
           )}
           <CardActions
+            canKeep={!training}
             apply={
               editable && typeof f.fix === "string" && !applied.has(e.item.itemKey)
                 ? {
@@ -252,6 +273,13 @@ export default function Results({
             <dd>{m.why}</dd>
           </div>
         </dl>
+        {training && (
+          <TeachingZone
+            itemType="missing"
+            lesson={m.not_learned}
+            repeats={priorCount(priorTallies, m.element)}
+          />
+        )}
         {editable && medium && missingText && (
           <Suggestion
             kind="missing"
@@ -261,6 +289,7 @@ export default function Results({
           />
         )}
         <CardActions
+          canKeep={!training}
           apply={
             editable && medium && missingText && !applied.has(e.item.itemKey)
               ? {
@@ -290,12 +319,22 @@ export default function Results({
           <span className="dot" />
           <span className="verdict-text">{VERDICT_LABEL[overall_verdict]}</span>
           <span className="verdict-count">
-            {fix.length === 0
+            {training
+              ? fix.length === 0
+                ? "No breaches"
+                : `${fix.length} ${fix.length === 1 ? "breach" : "breaches"}`
+              : fix.length === 0
               ? "Nothing to fix before sign-off"
               : `${fix.length} to fix before sign-off`}
             {look.length > 0 ? ` · ${look.length} worth a look` : ""}
           </span>
-          <RoleToggle role={role} onChange={setRole} />
+          {/* No role in training: a role says whose decision is being
+              recorded, and nothing is being recorded. */}
+          {training ? (
+            <span className="mode-badge">Nothing here is recorded</span>
+          ) : (
+            <RoleToggle role={role} onChange={setRole} />
+          )}
         </div>
 
         {applied.size > 0 && (
@@ -314,14 +353,15 @@ export default function Results({
 
         <div className="col triage-fix">
           <h2>
-            Fix before sign-off
+            {training ? "Breaches" : "Fix before sign-off"}
             <span className="tag">{fix.length}</span>
           </h2>
           <p className="triage-note">
-            Each of these makes the copy non-compliant on its own.{" "}
-            {role === "approver"
-              ? "Change the copy, or record why the risk is acceptable."
-              : "Change the copy, or keep it and note why for your approver."}
+            {training
+              ? "Each of these would make real copy non-compliant on its own. Read what it promises a reader, then try the fix."
+              : role === "approver"
+              ? "Each of these makes the copy non-compliant on its own. Change the copy, or record why the risk is acceptable."
+              : "Each of these makes the copy non-compliant on its own. Change the copy, or keep it and note why for your approver."}
           </p>
           {fix.length === 0 ? (
             <p className="empty">Nothing here makes the copy non-compliant.</p>
@@ -339,7 +379,9 @@ export default function Results({
             <p className="triage-note">
               Minor points. None of these makes the copy non-compliant on its
               own,{" "}
-              {role === "approver"
+              {training
+                ? "but each one is still a habit worth breaking."
+                : role === "approver"
                 ? "so you can judge them in context."
                 : "and your approver may accept them."}
             </p>
@@ -348,7 +390,9 @@ export default function Results({
         )}
       </section>
 
-      <DecisionLog entries={log} onChange={setLog} />
+      {/* The decision log is the audit trail. Training's promise is that it
+          writes none, so it shows none either. */}
+      {!training && <DecisionLog entries={log} onChange={setLog} />}
     </>
   );
 }
@@ -407,11 +451,14 @@ function Suggestion({
  *  filled button, the reasoned "keep it" decision on the right. */
 function CardActions({
   apply,
+  canKeep = true,
   role,
   accepted,
   formOpen,
   onOpen,
 }: {
+  /** False in training: there is no decision to keep, so no keep button. */
+  canKeep?: boolean;
   /** Null when there is nothing to apply: no text fix, or already applied. */
   apply: { available: boolean; onApply: () => void } | null;
   role: DecisionRole;
@@ -421,6 +468,7 @@ function CardActions({
 }) {
   // A logged decision or an open form replaces the row entirely.
   if (accepted || formOpen) return null;
+  if (!apply && !canKeep) return null;
   const copy = ROLE_COPY[role];
   return (
     <div className="card-actions">
@@ -440,13 +488,15 @@ function CardActions({
           to swap.
         </p>
       )}
-      <button type="button" className="ghost keep-btn" onClick={onOpen}>
-        <NoteIcon />
-        <span className="keep-lines">
-          <span className="keep-title">{copy.action}</span>
-          <span className="keep-sub">{copy.actionSub}</span>
-        </span>
-      </button>
+      {canKeep && (
+        <button type="button" className="ghost keep-btn" onClick={onOpen}>
+          <NoteIcon />
+          <span className="keep-lines">
+            <span className="keep-title">{copy.action}</span>
+            <span className="keep-sub">{copy.actionSub}</span>
+          </span>
+        </button>
+      )}
     </div>
   );
 }
@@ -651,3 +701,75 @@ function SeverityPill({ severity }: { severity: Severity }) {
   return <span className={`pill pill-${severity}`}>{label}</span>;
 }
 
+
+/** Where the keep-as-is decision sits in live mode. There is nothing to decide
+ *  or record in training, so this turns the flag into a lesson: what the words
+ *  promise a reader (Mark W: "saying it implies capital security"), what the
+ *  breach would cost, and whether you've made this mistake before. */
+function TeachingZone({
+  itemType,
+  severity,
+  lesson,
+  repeats,
+}: {
+  itemType: "flag" | "missing";
+  severity?: Severity;
+  /** What the words promise a reader (flag), or what the reader never finds
+   *  out (missing). Supplied by the engine on training runs only. */
+  lesson?: string;
+  /** How many EARLIER training runs hit this same rule. 0 = first time. */
+  repeats?: number;
+}) {
+  const heading =
+    itemType === "flag" ? "What this promises a reader" : "What a reader never finds out";
+  return (
+    <div className="teaching">
+      {repeats != null && repeats > 0 && (
+        <p className="teaching-repeat">
+          {ordinal(repeats + 1)} time you&apos;ve hit this rule.{" "}
+          {repeats >= 2 ? "Worth learning this one properly." : "Starting to look like a habit."}
+        </p>
+      )}
+      {lesson && (
+        <div className="teaching-lesson">
+          <p className="teaching-lesson-head">{heading}</p>
+          <p className="teaching-lesson-body">{sentenceCase(lesson)}</p>
+        </div>
+      )}
+      {severity && <p className="teaching-cost">{SEVERITY_LESSON[severity]}</p>}
+    </div>
+  );
+}
+
+/** The rules this learner keeps breaking, across training runs. Device-local
+ *  and never exported (lib/practiceLog.ts). Hidden until a rule has been hit
+ *  more than once, because a single mistake is not yet a pattern. */
+export function WeakSpots({ tallies }: { tallies: PracticeTally[] }) {
+  const spots = weakSpots(tallies);
+  if (spots.length === 0) return null;
+  return (
+    <section className="weakspots">
+      <h2 className="weakspots-title">Rules you keep breaking</h2>
+      <ul className="weakspots-list">
+        {spots.slice(0, 5).map((t) => (
+          <li key={t.rule} className="weakspots-item">
+            <span className="weakspots-count">{t.count}×</span>
+            <span className="weakspots-rule">{displayRule(t.rule)}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="weakspots-note">
+        Only you can see this. It stays on this device and is never shown to an
+        approver.
+      </p>
+    </section>
+  );
+}
+
+/** The model writes a flag's lesson as the end of a sentence ("that the money
+ *  they put in is protected..."). Under its own heading it reads better as a
+ *  sentence of its own. */
+function sentenceCase(text: string): string {
+  const t = text.trim().replace(/^that\s+/i, "");
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}

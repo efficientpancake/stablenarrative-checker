@@ -5,7 +5,9 @@ import Link from "next/link";
 import { CheckResult } from "@/lib/types";
 import { recordCheck, resetSession } from "@/lib/usageLog";
 import { rememberPiece } from "@/lib/outcomeLog";
-import Results from "@/app/components/Results";
+import Results, { WeakSpots } from "@/app/components/Results";
+import { CheckMode, MODE_COPY, TRAINING_BRIEF } from "@/lib/trainingMode";
+import { PracticeTally, getTallies, recordRun } from "@/lib/practiceLog";
 import ApprovalOutcomes from "@/app/components/ApprovalOutcomes";
 import Rewrites from "@/app/components/Rewrites";
 import { MEDIA, MediumId, DEFAULT_MEDIUM, getMedium } from "@/lib/medium";
@@ -86,6 +88,16 @@ export default function Home() {
   // Where the copy is going. It decides which risk warning is required, what a
   // one-click fix inserts, and how long a rewrite may be. See lib/medium.ts.
   const [medium, setMedium] = useState<MediumId>(DEFAULT_MEDIUM);
+  // Live vs training. Deliberately not persisted: every load starts in Live,
+  // because a stale training mode mistaken for a real check is the exact
+  // failure this tool exists to prevent. See lib/trainingMode.ts.
+  const [mode, setMode] = useState<CheckMode>("live");
+  const training = mode === "training";
+  // The learner's repeat-mistake tally BEFORE the run on screen (for "3rd
+  // time" on a card) and AFTER it (for the weak-spots summary). Device-local,
+  // never exported, never shown to an approver: see lib/practiceLog.ts.
+  const [priorTallies, setPriorTallies] = useState<PracticeTally[]>([]);
+  const [currentTallies, setCurrentTallies] = useState<PracticeTally[]>([]);
   // Bumped on every check, so results and their applied fixes start fresh.
   const [checkId, setCheckId] = useState(0);
   // Fixes and rewrites edit text. A check that included an image or PDF can't
@@ -201,6 +213,20 @@ export default function Home() {
     setActiveSessionId(null);
   }
 
+  // Switching mode clears the workspace. Carrying real copy into training, or
+  // a practice draft into live, is how someone checks the wrong thing under
+  // the wrong rules about what gets recorded.
+  function switchMode(next: CheckMode) {
+    if (next === mode) return;
+    setMode(next);
+    if (next === "training") {
+      const t = getTallies();
+      setPriorTallies(t);
+      setCurrentTallies(t);
+    }
+    startNewCopy();
+  }
+
   async function check(textOverride?: string) {
     const text = textOverride ?? copy;
     setLoading(true);
@@ -216,7 +242,7 @@ export default function Home() {
           "content-type": "application/json",
           "x-access-code": localStorage.getItem(STORAGE_KEY) ?? "",
         },
-        body: JSON.stringify({ copy: text, file, medium }),
+        body: JSON.stringify({ copy: text, file, medium, mode }),
       });
       const data = await res.json();
       if (res.status === 401) {
@@ -237,6 +263,18 @@ export default function Home() {
           ? `[Attached ${attachment.kind}: ${attachment.name}]`
           : ""
       );
+      // Training runs are practice reps, not checks: they feed the learner's
+      // own tally and nothing else. No usage log, no sign-off question.
+      if (training) {
+        setPriorTallies(
+          recordRun([
+            ...checked.flags.map((f) => f.rule),
+            ...checked.missing_required.map((m) => m.element),
+          ])
+        );
+        setCurrentTallies(getTallies());
+        return;
+      }
       // Measurement: log this check so re-checks-until-clean can be counted.
       const log = recordCheck({
         tester: localStorage.getItem(LABEL_KEY) ?? "local",
@@ -334,7 +372,7 @@ export default function Home() {
   }
 
   return (
-    <main className="wrap">
+    <main className="wrap" data-mode={mode}>
       <header className="head">
         <div className="brand">
           <Logo />
@@ -345,30 +383,60 @@ export default function Home() {
             <ThemeToggle />
           </div>
         </div>
-        <h1>FCA compliance check for UK crypto marketing copy</h1>
-        <p className="sub">
-          Paste or upload your promotion, get it checked against FCA rules, then send it to your s21 approver for sign-off.
-        </p>
+        <ModeToggle mode={mode} onChange={switchMode} />
+        {training ? (
+          <>
+            <h1>Training mode</h1>
+            <p className="sub">{MODE_COPY.training.promise}</p>
+          </>
+        ) : (
+          <>
+            <h1>FCA compliance check for UK crypto marketing copy</h1>
+            <p className="sub">
+              Paste or upload your promotion, get it checked against FCA rules, then send it to your s21 approver for sign-off.
+            </p>
+          </>
+        )}
       </header>
 
-      <ApprovalOutcomes
-        tick={usageTick}
-        activeSessionId={activeSessionId}
-        onChange={() => setUsageTick((n) => n + 1)}
-      />
+      {training ? (
+        <>
+          <WeakSpots tallies={currentTallies} />
+          <section className="training-brief">
+            <h2 className="training-brief-title">{TRAINING_BRIEF.title}</h2>
+            <p className="training-brief-body">{TRAINING_BRIEF.body}</p>
+            <button
+              type="button"
+              className="ghost"
+              onClick={() => setCopy(TRAINING_BRIEF.example)}
+            >
+              Or start from one I prepared earlier
+            </button>
+          </section>
+        </>
+      ) : (
+        <ApprovalOutcomes
+          tick={usageTick}
+          activeSessionId={activeSessionId}
+          onChange={() => setUsageTick((n) => n + 1)}
+        />
+      )}
 
       <div className="workspace">
         <section className="panel">
           <div className="editor">
             <div className="editor-top">
-              <label htmlFor="copy">Marketing copy</label>
-              <button
-                type="button"
-                className="ghost"
-                onClick={() => setCopy(EXAMPLE)}
-              >
-                Load example
-              </button>
+              <label htmlFor="copy">{training ? "Your draft" : "Marketing copy"}</label>
+              {/* Training has its own worked example in the brief above. */}
+              {!training && (
+                <button
+                  type="button"
+                  className="ghost"
+                  onClick={() => setCopy(EXAMPLE)}
+                >
+                  Load example
+                </button>
+              )}
             </div>
             <textarea
               id="copy"
@@ -552,6 +620,8 @@ export default function Home() {
           editable={!checkedHadAttachment && copy.trim().length > 0}
           onApply={(next) => setCopy(next)}
           onRecheck={() => check()}
+          mode={mode}
+          priorTallies={priorTallies}
         />
       )}
 
@@ -564,6 +634,12 @@ export default function Home() {
             copy={checkedPromotion}
             medium={getMedium(medium)}
             result={result}
+            title={training ? "Now here’s what compliant looks like" : undefined}
+            sub={
+              training
+                ? "Three compliant versions of your draft. Compare them against what you wrote: the gap between the two is the lesson."
+                : undefined
+            }
             onUse={(text) => {
               setCopy(text);
               document.getElementById("copy")?.scrollIntoView({ block: "center" });
@@ -572,10 +648,14 @@ export default function Home() {
           />
         )}
 
-      <UsagePanel tick={usageTick} />
+      {/* The usage panel measures rounds-to-clean on real copy. Training reps
+          aren't part of that measurement. */}
+      {!training && <UsagePanel tick={usageTick} />}
 
       <footer className="foot">
-        Compliance-style review to assist a human approver, not legal advice.
+        {training
+          ? "Practice against the real rulebook. Nothing in training mode is recorded, and no promotion is approved here."
+          : "Compliance-style review to assist a human approver, not legal advice."}
         <br />
         Found a bug? Checker error?{" "}
         <Link className="foot-link" href="/support">
@@ -584,5 +664,34 @@ export default function Home() {
         .
       </footer>
     </main>
+  );
+}
+
+/** Live vs training, as a choice you make on purpose. Styled like the role
+ *  switch so the two controls read as one family. */
+function ModeToggle({
+  mode,
+  onChange,
+}: {
+  mode: CheckMode;
+  onChange: (mode: CheckMode) => void;
+}) {
+  return (
+    <div className="mode-toggle-row">
+      <div className="role-toggle" role="group" aria-label="Check mode">
+        {(["live", "training"] as CheckMode[]).map((m) => (
+          <button
+            key={m}
+            type="button"
+            className={`role-toggle-opt${mode === m ? " is-active" : ""}`}
+            aria-pressed={mode === m}
+            onClick={() => onChange(m)}
+          >
+            {MODE_COPY[m].label}
+          </button>
+        ))}
+      </div>
+      {mode === "training" && <span className="mode-badge">Nothing here is recorded</span>}
+    </div>
   );
 }
