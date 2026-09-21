@@ -377,15 +377,15 @@ export default function Home() {
         <div className="brand">
           <Logo />
           <div className="brand-actions">
-            {/* One switch, in the header: "Training mode" goes in, "Pre-check"
-                comes back out to the real check. */}
+            {/* One switch, in the header: "Training Mode" goes in, "Pre-check
+                Mode" comes back out to the real check. */}
             <button
               type="button"
               className="ghost mode-switch"
               aria-pressed={training}
               onClick={() => switchMode(training ? "live" : "training")}
             >
-              {training ? "Pre-check" : "Training mode"}
+              {training ? "Pre-check Mode" : "Training Mode"}
             </button>
             <Link href="/support" className="button-link ghost">
               Support
@@ -395,7 +395,7 @@ export default function Home() {
         </div>
         {training ? (
           <>
-            <h1>Training mode</h1>
+            <h1>Training Mode</h1>
             <p className="sub">{MODE_COPY.training.promise}</p>
           </>
         ) : (
@@ -663,7 +663,7 @@ export default function Home() {
 
       <footer className="foot">
         {training
-          ? "Practice against the real rulebook. Nothing in training mode is recorded, and no promotion is approved here."
+          ? "Practice against the real rulebook. Nothing in Training Mode is recorded, and no promotion is approved here."
           : "Compliance-style review to assist a human approver, not legal advice."}
         <br />
         Found a bug? Checker error?{" "}

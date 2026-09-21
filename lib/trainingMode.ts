@@ -43,12 +43,12 @@ export type CheckMode = "live" | "training";
 /** What each mode is called, and the one-line promise it makes. */
 export const MODE_COPY: Record<CheckMode, { label: string; promise: string }> = {
   live: {
-    label: "Pre-check",
+    label: "Pre-check Mode",
     promise:
       "Checks real copy on its way to your s21 approver. Decisions you record here become part of the audit trail.",
   },
   training: {
-    label: "Training",
+    label: "Training Mode",
     promise:
       "A safe space to learn the rules by breaking them. Nothing here is recorded, logged, or seen by anyone.",
   },
@@ -92,4 +92,4 @@ export const IMPLICATION_PROMPT: Record<"flag" | "missing", string> = {
 /** Shown where the override controls sit in live mode, so the absence reads as
  *  deliberate rather than as something that failed to load. */
 export const NO_RECORD_NOTE =
-  "No decision to record. Nothing in training mode is logged.";
+  "No decision to record. Nothing in Training Mode is logged.";
