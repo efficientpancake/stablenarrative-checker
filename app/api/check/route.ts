@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import mammoth from "mammoth";
 import { runCheck, Attachment } from "@/lib/engine";
-import { resolveAccess } from "@/lib/access";
+import { resolveAccess, resolveFreeTrial } from "@/lib/access";
+import { FREE_HEADER } from "@/lib/freeTrial";
 import { getMedium } from "@/lib/medium";
 
 export const runtime = "nodejs";
 
 // Sonnet 5 vision accepts these image types.
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+
+/** A long landing-page hero is ~1,500 characters; this bounds a free check
+ *  without getting in the way of real copy. */
+const FREE_MAX_CHARS = 3000;
 
 function bad(error: string) {
   return NextResponse.json({ error }, { status: 400 });
@@ -18,7 +23,11 @@ export async function POST(req: NextRequest) {
     // Gate first: the access code (sent as a header) picks this tester's API
     // key. When gated, a missing/wrong code is rejected — never silently run on
     // a default key, so every check is attributed to exactly one tester.
-    const access = resolveAccess(req.headers.get("x-access-code"));
+    // A free-trial visitor has no code: their checks run on StableNarrative's
+    // own key, so they are bounded here (no file uploads, shorter copy) as
+    // well as by the five-check count in the browser.
+    const free = req.headers.get(FREE_HEADER) === "1";
+    const access = free ? resolveFreeTrial() : resolveAccess(req.headers.get("x-access-code"));
     if (access.gated && access.reason) {
       return NextResponse.json({ error: "Access code required." }, { status: 401 });
     }
@@ -71,6 +80,22 @@ export async function POST(req: NextRequest) {
       return bad("Provide marketing copy, a file, or both.");
     }
 
+    // Free-trial limits. A visual check (image or PDF) costs several times a
+    // text one, and long copy costs more again, so the demo is text-only and
+    // capped at a normal promotion's length.
+    if (free) {
+      if (attachment) {
+        return bad(
+          "The free trial checks pasted copy. To check an image or PDF, book a 15-minute setup call."
+        );
+      }
+      if (copy.length > FREE_MAX_CHARS) {
+        return bad(
+          `The free trial checks up to ${FREE_MAX_CHARS} characters at a time. Paste a shorter piece, or book a call to check a full page.`
+        );
+      }
+    }
+
     const result = await runCheck(copy, attachment, access.key, medium, mode);
 
     // Central measurement backup — one structured line per check in the server
@@ -81,6 +106,7 @@ export async function POST(req: NextRequest) {
         evt: "check",
         at: new Date().toISOString(),
         tester: access.label ?? "unknown",
+        free,
         medium: medium.id,
         mode,
         verdict: result.overall_verdict,

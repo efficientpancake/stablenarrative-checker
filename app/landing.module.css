@@ -59,6 +59,7 @@
   align-items: center;
   gap: 10px;
 }
+.headerTry,
 .headerBook,
 .login {
   font-size: 15.5px;
@@ -74,6 +75,16 @@
   background: var(--lp-accent);
   color: var(--lp-accent-text);
 }
+/* The trial sits between the two: filled, but in the soft brand lavender so it
+   reads as a third, lighter action rather than a second primary. */
+.headerTry {
+  background: var(--lp-accent-soft);
+  color: var(--lp-accent-ink);
+  border-color: var(--lp-accent-soft);
+}
+.headerTry:hover {
+  border-color: var(--lp-accent);
+}
 .headerBook:hover {
   background: var(--lp-accent-hover);
 }
@@ -84,6 +95,7 @@
 .login:hover {
   border-color: var(--lp-text);
 }
+.headerTry:focus-visible,
 .headerBook:focus-visible,
 .login:focus-visible,
 .cta:focus-visible {
@@ -145,6 +157,43 @@
 .cta:hover {
   background: var(--lp-accent-hover);
 }
+/* The two front-door actions: book a call, or try it without signing up. */
+.ctaRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.tryFree {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16.5px;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--lp-text);
+  background: var(--lp-surface);
+  border: 1px solid var(--lp-border-strong);
+  padding: 13px 22px;
+  border-radius: 10px;
+  transition: border-color 0.15s ease;
+}
+.tryFree:hover {
+  border-color: var(--lp-text);
+}
+.tryFree:focus-visible {
+  outline: 3px solid var(--lp-accent-soft);
+  outline-offset: 2px;
+}
+@media (max-width: 760px) {
+  .ctaRow {
+    width: 100%;
+  }
+  .tryFree {
+    flex: 1;
+  }
+}
+
 .ctaNote {
   display: block;
   margin-top: 12px;
@@ -276,11 +325,19 @@
     flex-wrap: wrap;
     row-gap: 14px;
   }
+  /* Three actions don't fit one phone row: the two ways in share the top row,
+     and logging in (the rarest) takes the line below. */
   .headerActions {
     width: 100%;
+    flex-wrap: wrap;
   }
+  .headerTry,
   .headerBook {
-    flex: 1;
+    flex: 1 1 42%;
+    text-align: center;
+  }
+  .login {
+    flex: 1 1 100%;
     text-align: center;
   }
   .hero {

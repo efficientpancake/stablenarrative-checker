@@ -1665,3 +1665,27 @@ html[data-theme="dark"]:has(main[data-mode="training"]) body {
   font-size: 15px;
   color: var(--text-secondary);
 }
+
+/* ── Free trial bar (the "Try it free" path from the landing page) ────────── */
+.free-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: var(--accent-soft);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 24px;
+}
+.free-bar-done {
+  background: var(--status-warning-soft);
+}
+.free-bar-text {
+  margin: 0;
+  flex: 1 1 22em;
+  font-size: 16px;
+  color: var(--text-primary);
+}
+.attach-free-note {
+  margin-top: 4px;
+}

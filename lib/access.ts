@@ -37,6 +37,15 @@ export interface Resolved {
   reason?: "required" | "invalid";
 }
 
+/** The free trial's key. A visitor from the landing page has no code and no
+ *  key of their own, so these checks are paid for by StableNarrative: set
+ *  FREE_TRIAL_KEY in Netlify to keep that spend on its own key in the Console.
+ *  Falls back to the shared key so local dev works without extra config. */
+export function resolveFreeTrial(): Resolved {
+  const key = process.env.FREE_TRIAL_KEY ?? process.env.ANTHROPIC_API_KEY;
+  return { key, label: "free", gated: false };
+}
+
 /** Resolve an incoming code to the right API key, or explain why it can't. */
 export function resolveAccess(code: string | null | undefined): Resolved {
   const users = readUsers();

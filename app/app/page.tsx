@@ -8,6 +8,14 @@ import { rememberPiece } from "@/lib/outcomeLog";
 import Results, { WeakSpots } from "@/app/components/Results";
 import { CheckMode, MODE_COPY, TRAINING_BRIEF } from "@/lib/trainingMode";
 import { PracticeTally, getTallies, recordRun } from "@/lib/practiceLog";
+import {
+  FREE_HEADER,
+  FREE_LIMIT,
+  clearFreeMode,
+  freeLeft,
+  isFreeMode,
+  recordFreeCheck,
+} from "@/lib/freeTrial";
 import ApprovalOutcomes from "@/app/components/ApprovalOutcomes";
 import Rewrites from "@/app/components/Rewrites";
 import { MEDIA, MediumId, DEFAULT_MEDIUM, getMedium } from "@/lib/medium";
@@ -20,6 +28,9 @@ const STORAGE_KEY = "sn_access_code";
 // Deliberately separate from the code: the code unlocks an API key and must
 // never leave this device; the label identifies without granting anything.
 const LABEL_KEY = "sn_access_label";
+
+// Same link as the landing page: where an out-of-checks visitor goes next.
+const BOOKING_LINK = "https://calendly.com/sarah-shaefer-xexw/15-minute-setup-meeting";
 
 const EXAMPLE = `Own uranium on-chain with xU3O8. A safe, guaranteed store of value backed by real assets.
 Don't miss out, get in before the next bull run.`;
@@ -108,6 +119,10 @@ export default function Home() {
   // Access gate. null = still checking; true = unlocked (or app is ungated);
   // false = show the code screen.
   const [unlocked, setUnlocked] = useState<boolean | null>(null);
+  // Free trial: arrived from the landing page's "Try it free" button. No code,
+  // no key of their own, five checks on StableNarrative's key. lib/freeTrial.ts
+  const [free, setFree] = useState(false);
+  const [freeRemaining, setFreeRemaining] = useState(FREE_LIMIT);
   const [gateInput, setGateInput] = useState("");
   const [gateError, setGateError] = useState<string | null>(null);
   const [gateBusy, setGateBusy] = useState(false);
@@ -115,6 +130,12 @@ export default function Home() {
   // On load, validate any stored code (spends no API tokens). If the app is
   // ungated, the probe returns ok and we unlock immediately.
   useEffect(() => {
+    if (isFreeMode()) {
+      setFree(true);
+      setFreeRemaining(freeLeft());
+      setUnlocked(true);
+      return;
+    }
     const stored = localStorage.getItem(STORAGE_KEY);
     (async () => {
       try {
@@ -147,6 +168,8 @@ export default function Home() {
       if (data.ok) {
         localStorage.setItem(STORAGE_KEY, code);
         if (data.label) localStorage.setItem(LABEL_KEY, data.label);
+        clearFreeMode();
+        setFree(false);
         setUnlocked(true);
       } else {
         setGateError(
@@ -229,6 +252,12 @@ export default function Home() {
 
   async function check(textOverride?: string) {
     const text = textOverride ?? copy;
+    if (free && freeLeft() === 0) {
+      setError(
+        "That's your five free checks. Book a 15-minute call and we'll set you up with your own access."
+      );
+      return;
+    }
     setLoading(true);
     setError(null);
     setResult(null);
@@ -240,12 +269,14 @@ export default function Home() {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          "x-access-code": localStorage.getItem(STORAGE_KEY) ?? "",
+          ...(free
+            ? { [FREE_HEADER]: "1" }
+            : { "x-access-code": localStorage.getItem(STORAGE_KEY) ?? "" }),
         },
         body: JSON.stringify({ copy: text, file, medium, mode }),
       });
       const data = await res.json();
-      if (res.status === 401) {
+      if (res.status === 401 && !free) {
         // Code no longer valid (e.g. rotated) — send them back to the gate.
         localStorage.removeItem(STORAGE_KEY);
         setUnlocked(false);
@@ -253,6 +284,7 @@ export default function Home() {
       }
       if (!res.ok) throw new Error(data.error || "Check failed");
       const checked = data as CheckResult;
+      if (free) setFreeRemaining(recordFreeCheck());
       setResult(checked);
       setCheckedHadAttachment(!!attachment);
       setCheckId((n) => n + 1);
@@ -393,7 +425,45 @@ export default function Home() {
             <ThemeToggle />
           </div>
         </div>
-        {training ? (
+        {free && (
+        <section className={`free-bar${freeRemaining === 0 ? " free-bar-done" : ""}`}>
+          {freeRemaining > 0 ? (
+            <>
+              <p className="free-bar-text">
+                <strong>Free trial.</strong> {freeRemaining} of {FREE_LIMIT}{" "}
+                {freeRemaining === 1 ? "check" : "checks"} left. Paste real copy:
+                nothing you check here is stored anywhere but this browser.
+              </p>
+              <a
+                className="button-link ghost"
+                href={BOOKING_LINK}
+                target="_blank"
+                rel="noopener"
+              >
+                Book a 15-minute call
+              </a>
+            </>
+          ) : (
+            <>
+              <p className="free-bar-text">
+                <strong>That&apos;s your five free checks.</strong> Book a
+                15-minute call and we&apos;ll set you up with your own access,
+                free while we&apos;re testing.
+              </p>
+              <a
+                className="button-link primary"
+                href={BOOKING_LINK}
+                target="_blank"
+                rel="noopener"
+              >
+                Book a 15-minute call
+              </a>
+            </>
+          )}
+        </section>
+      )}
+
+      {training ? (
           <>
             <h1>Training Mode</h1>
             <p className="sub">{MODE_COPY.training.promise}</p>
@@ -423,7 +493,7 @@ export default function Home() {
             </button>
           </section>
         </>
-      ) : (
+      ) : free ? null : (
         <ApprovalOutcomes
           tick={usageTick}
           activeSessionId={activeSessionId}
@@ -451,7 +521,11 @@ export default function Home() {
               id="copy"
               value={copy}
               onChange={(e) => setCopy(e.target.value)}
-              placeholder="Paste the tweet, landing-page hero, ad, or CTA here, or attach a file below…"
+              placeholder={
+                free
+                  ? "Paste the tweet, landing-page hero, ad, or CTA here…"
+                  : "Paste the tweet, landing-page hero, ad, or CTA here, or attach a file below…"
+              }
               rows={10}
             />
 
@@ -474,6 +548,12 @@ export default function Home() {
               <p className="hint medium-note">{getMedium(medium).note}</p>
             </div>
 
+            {free ? (
+              <p className="hint attach-free-note">
+                The free trial checks pasted copy. Book a call to check an image
+                or a PDF.
+              </p>
+            ) : (
             <div className="attach">
               <input
                 ref={fileInput}
@@ -547,12 +627,13 @@ export default function Home() {
                   : "Word and text files are read as copy; images and PDFs also get a visual-prominence check."}
               </p>
             </div>
+            )}
 
             <div className="actions">
               <button
                 className="primary"
                 onClick={() => check()}
-                disabled={loading || !canCheck}
+                disabled={loading || !canCheck || (free && freeRemaining === 0)}
               >
                 {loading && <span className="spinner" />}
                 {loading ? "Checking…" : "Check compliance"}

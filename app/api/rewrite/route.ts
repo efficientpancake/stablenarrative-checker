@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runRewrite } from "@/lib/engine";
-import { resolveAccess } from "@/lib/access";
+import { resolveAccess, resolveFreeTrial } from "@/lib/access";
+import { FREE_HEADER } from "@/lib/freeTrial";
 import { getMedium } from "@/lib/medium";
 
 export const runtime = "nodejs";
@@ -28,7 +29,8 @@ function asText(v: unknown): string {
 export async function POST(req: NextRequest) {
   try {
     // Same gate as /api/check: the access code picks this tester's API key.
-    const access = resolveAccess(req.headers.get("x-access-code"));
+    const free = req.headers.get(FREE_HEADER) === "1";
+    const access = free ? resolveFreeTrial() : resolveAccess(req.headers.get("x-access-code"));
     if (access.gated && access.reason) {
       return NextResponse.json({ error: "Access code required." }, { status: 401 });
     }
