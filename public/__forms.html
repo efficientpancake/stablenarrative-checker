@@ -47,6 +47,22 @@
       Never includes the marketing copy. `feedback` is only what the tester
       chooses to paste, under a label that says it is sent.
     -->
+    <!--
+      Free-trial sign-ups (lib/freeTrial.ts, app/app/page.tsx). One submission
+      the first time a visitor starts their five free checks, so every trial is
+      a lead you can follow up. Never includes the copy they check.
+    -->
+    <form name="trial" data-netlify="true" data-netlify-honeypot="bot-field" hidden>
+      <input type="hidden" name="form-name" value="trial" />
+      <input name="bot-field" />
+
+      <input type="email" name="email" />
+      <input name="firm" />
+      <input name="marketing" />
+      <input name="when" />
+      <input name="build" />
+    </form>
+
     <form name="outcome" data-netlify="true" data-netlify-honeypot="bot-field" hidden>
       <input type="hidden" name="form-name" value="outcome" />
       <input name="bot-field" />

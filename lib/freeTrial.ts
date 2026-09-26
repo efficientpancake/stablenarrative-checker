@@ -22,6 +22,36 @@ const FLAG_KEY = "sn_free_mode";
 
 /** Header the client sends instead of an access code. */
 export const FREE_HEADER = "x-free-trial";
+/** The email the visitor gave to start their trial. Not verified: it is a
+ *  speed bump plus a lead, not authentication. */
+export const FREE_EMAIL_HEADER = "x-free-email";
+
+const EMAIL_KEY = "sn_free_email";
+
+export function freeEmail(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    return localStorage.getItem(EMAIL_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export function setFreeEmail(email: string): void {
+  try {
+    localStorage.setItem(EMAIL_KEY, email);
+  } catch {
+    /* storage blocked: they will be asked again on the next page load */
+  }
+}
+
+/** Deliberately loose: enough to catch a typo, never enough to reject a real
+ *  address. Anything stricter fails on valid addresses more often than it
+ *  stops anyone. */
+export function looksLikeEmail(value: string): boolean {
+  const v = value.trim();
+  return v.length > 4 && v.length < 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+}
 
 export function isFreeMode(): boolean {
   if (typeof window === "undefined") return false;

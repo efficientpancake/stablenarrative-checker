@@ -9,12 +9,16 @@ import Results, { WeakSpots } from "@/app/components/Results";
 import { CheckMode, MODE_COPY, TRAINING_BRIEF } from "@/lib/trainingMode";
 import { PracticeTally, getTallies, recordRun } from "@/lib/practiceLog";
 import {
+  FREE_EMAIL_HEADER,
   FREE_HEADER,
   FREE_LIMIT,
   clearFreeMode,
+  freeEmail,
   freeLeft,
   isFreeMode,
+  looksLikeEmail,
   recordFreeCheck,
+  setFreeEmail,
 } from "@/lib/freeTrial";
 import ApprovalOutcomes from "@/app/components/ApprovalOutcomes";
 import Rewrites from "@/app/components/Rewrites";
@@ -123,6 +127,15 @@ export default function Home() {
   // no key of their own, five checks on StableNarrative's key. lib/freeTrial.ts
   const [free, setFree] = useState(false);
   const [freeRemaining, setFreeRemaining] = useState(FREE_LIMIT);
+  // The email a trial visitor gives before their first check. Not verified: a
+  // speed bump against casual abuse, and a lead worth following up.
+  const [trialEmail, setTrialEmail] = useState("");
+  const [emailInput, setEmailInput] = useState("");
+  const [firmInput, setFirmInput] = useState("");
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [emailBusy, setEmailBusy] = useState(false);
+  // Opt-in, off by default: consent has to be given, not withdrawn.
+  const [optIn, setOptIn] = useState(false);
   const [gateInput, setGateInput] = useState("");
   const [gateError, setGateError] = useState<string | null>(null);
   const [gateBusy, setGateBusy] = useState(false);
@@ -133,6 +146,7 @@ export default function Home() {
     if (isFreeMode()) {
       setFree(true);
       setFreeRemaining(freeLeft());
+      setTrialEmail(freeEmail());
       setUnlocked(true);
       return;
     }
@@ -250,6 +264,41 @@ export default function Home() {
     startNewCopy();
   }
 
+  async function startTrial(e: React.FormEvent) {
+    e.preventDefault();
+    const email = emailInput.trim();
+    const firm = firmInput.trim();
+    if (!looksLikeEmail(email)) {
+      setEmailError("That doesn't look like an email address.");
+      return;
+    }
+    setEmailBusy(true);
+    setEmailError(null);
+    // Netlify Forms, the same route the support form and the approval outcomes
+    // use (public/__forms.html). A failure here must not block the trial: the
+    // lead is ours to lose, the visitor's time is not.
+    try {
+      await fetch("/__forms.html", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          "form-name": "trial",
+          "bot-field": "",
+          email,
+          firm,
+          marketing: optIn ? "yes" : "no",
+          when: new Date().toISOString(),
+          build: process.env.NEXT_PUBLIC_BUILD ?? "dev",
+        }).toString(),
+      });
+    } catch {
+      /* offline or blocked: carry on, they still get their checks */
+    }
+    setFreeEmail(email);
+    setTrialEmail(email);
+    setEmailBusy(false);
+  }
+
   async function check(textOverride?: string) {
     const text = textOverride ?? copy;
     if (free && freeLeft() === 0) {
@@ -270,7 +319,7 @@ export default function Home() {
         headers: {
           "content-type": "application/json",
           ...(free
-            ? { [FREE_HEADER]: "1" }
+            ? { [FREE_HEADER]: "1", [FREE_EMAIL_HEADER]: trialEmail }
             : { "x-access-code": localStorage.getItem(STORAGE_KEY) ?? "" }),
         },
         body: JSON.stringify({ copy: text, file, medium, mode }),
@@ -425,7 +474,84 @@ export default function Home() {
             <ThemeToggle />
           </div>
         </div>
-        {free && (
+      {training ? (
+          <>
+            <h1>Training Mode</h1>
+            <p className="sub">{MODE_COPY.training.promise}</p>
+          </>
+        ) : (
+          <>
+            <h1>FCA compliance check for UK crypto marketing copy</h1>
+            <p className="sub">
+              Paste or upload your promotion, get it checked against FCA rules, then send it to your s21 approver for sign-off.
+            </p>
+          </>
+        )}
+      </header>
+
+      {free && !trialEmail && (
+        <section className="panel trial-gate">
+          <h2 className="trial-gate-title">
+            Run your first five checks for free. No credit card necessary.
+          </h2>
+          <form onSubmit={startTrial} className="trial-gate-form">
+            <label htmlFor="trial-email">Email</label>
+            <input
+              id="trial-email"
+              type="email"
+              value={emailInput}
+              onChange={(e) => setEmailInput(e.target.value)}
+              placeholder="you@example.com"
+              autoComplete="email"
+              required
+            />
+            <label htmlFor="trial-firm">Company (optional)</label>
+            <input
+              id="trial-firm"
+              type="text"
+              value={firmInput}
+              onChange={(e) => setFirmInput(e.target.value)}
+              placeholder="Where you work"
+              autoComplete="organization"
+            />
+            <label className="trial-gate-check" htmlFor="trial-optin">
+              <input
+                id="trial-optin"
+                type="checkbox"
+                checked={optIn}
+                onChange={(e) => setOptIn(e.target.checked)}
+              />
+              <span>
+                Keep me posted on new features and updates. I can unsubscribe
+                anytime.
+              </span>
+            </label>
+            {emailError && <div className="error">{emailError}</div>}
+            <button type="submit" className="primary" disabled={emailBusy}>
+              {emailBusy && <span className="spinner" />}
+              {emailBusy ? "Starting…" : "Try it out"}
+            </button>
+            <p className="trial-gate-note">
+              We&apos;ll only use your email to follow up about your checks,
+              never for marketing without your explicit permission.
+            </p>
+            <p className="hint">
+              Prefer to talk first?{" "}
+              <a
+                className="foot-link"
+                href={BOOKING_LINK}
+                target="_blank"
+                rel="noopener"
+              >
+                Book a 15-minute call
+              </a>
+              .
+            </p>
+          </form>
+        </section>
+      )}
+
+      {free && trialEmail && (
         <section className={`free-bar${freeRemaining === 0 ? " free-bar-done" : ""}`}>
           {freeRemaining > 0 ? (
             <>
@@ -463,22 +589,8 @@ export default function Home() {
         </section>
       )}
 
-      {training ? (
-          <>
-            <h1>Training Mode</h1>
-            <p className="sub">{MODE_COPY.training.promise}</p>
-          </>
-        ) : (
-          <>
-            <h1>FCA compliance check for UK crypto marketing copy</h1>
-            <p className="sub">
-              Paste or upload your promotion, get it checked against FCA rules, then send it to your s21 approver for sign-off.
-            </p>
-          </>
-        )}
-      </header>
 
-      {training ? (
+      {free && !trialEmail ? null : training ? (
         <>
           <WeakSpots tallies={currentTallies} />
           <section className="training-brief">
@@ -501,6 +613,7 @@ export default function Home() {
         />
       )}
 
+      {!(free && !trialEmail) && (
       <div className="workspace">
         <section className="panel">
           <div className="editor">
@@ -698,6 +811,8 @@ export default function Home() {
         </aside>
       </div>
 
+      )}
+
       {error && <div className="error">Error: {error}</div>}
 
       {result && (
@@ -740,7 +855,7 @@ export default function Home() {
 
       {/* The usage panel measures rounds-to-clean on real copy. Training reps
           aren't part of that measurement. */}
-      {!training && <UsagePanel tick={usageTick} />}
+      {!training && !free && <UsagePanel tick={usageTick} />}
 
       <footer className="foot">
         {training

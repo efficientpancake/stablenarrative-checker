@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import mammoth from "mammoth";
 import { runCheck, Attachment } from "@/lib/engine";
 import { resolveAccess, resolveFreeTrial } from "@/lib/access";
-import { FREE_HEADER } from "@/lib/freeTrial";
+import { FREE_EMAIL_HEADER, FREE_HEADER, looksLikeEmail } from "@/lib/freeTrial";
+import { clientIp, quotaMessage, spendFreeQuota } from "@/lib/freeQuota";
 import { getMedium } from "@/lib/medium";
 
 export const runtime = "nodejs";
@@ -84,6 +85,21 @@ export async function POST(req: NextRequest) {
     // text one, and long copy costs more again, so the demo is text-only and
     // capped at a normal promotion's length.
     if (free) {
+      // Kill switch: set FREE_TRIAL_OFF=1 in Netlify (then redeploy) to stop
+      // serving the trial. Testers with access codes are unaffected.
+      if (process.env.FREE_TRIAL_OFF === "1") {
+        return NextResponse.json(
+          {
+            error:
+              "The free trial is paused right now. Book a 15-minute call and we'll set you up with access.",
+          },
+          { status: 503 }
+        );
+      }
+      const email = (req.headers.get(FREE_EMAIL_HEADER) ?? "").trim();
+      if (!looksLikeEmail(email)) {
+        return bad("Enter your email to start your free checks.");
+      }
       if (attachment) {
         return bad(
           "The free trial checks pasted copy. To check an image or PDF, book a 15-minute setup call."
@@ -93,6 +109,15 @@ export async function POST(req: NextRequest) {
         return bad(
           `The free trial checks up to ${FREE_MAX_CHARS} characters at a time. Paste a shorter piece, or book a call to check a full page.`
         );
+      }
+      // The limit that survives clearing the browser. Counted last, so the
+      // cheap rejections above never burn a visitor's quota.
+      const quota = await spendFreeQuota(email, clientIp(req.headers));
+      if (!quota.ok && quota.hit) {
+        return NextResponse.json({ error: quotaMessage(quota.hit) }, { status: 429 });
+      }
+      if (quota.unavailable) {
+        console.log(JSON.stringify({ evt: "quota_unavailable", at: new Date().toISOString() }));
       }
     }
 
@@ -107,6 +132,8 @@ export async function POST(req: NextRequest) {
         at: new Date().toISOString(),
         tester: access.label ?? "unknown",
         free,
+        // Whose trial this is, so the log lines can be counted per person.
+        trial_email: free ? (req.headers.get(FREE_EMAIL_HEADER) ?? "").trim() : null,
         medium: medium.id,
         mode,
         verdict: result.overall_verdict,
