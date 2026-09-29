@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runRewrite } from "@/lib/engine";
-import { resolveAccess, resolveFreeTrial } from "@/lib/access";
-import { FREE_EMAIL_HEADER, FREE_HEADER, looksLikeEmail } from "@/lib/freeTrial";
-import { clientIp, quotaMessage, spendFreeQuota } from "@/lib/freeQuota";
+import { resolveAccess } from "@/lib/access";
 import { getMedium } from "@/lib/medium";
 
 export const runtime = "nodejs";
@@ -30,21 +28,7 @@ function asText(v: unknown): string {
 export async function POST(req: NextRequest) {
   try {
     // Same gate as /api/check: the access code picks this tester's API key.
-    const free = req.headers.get(FREE_HEADER) === "1";
-    const access = free ? resolveFreeTrial() : resolveAccess(req.headers.get("x-access-code"));
-    if (free) {
-      if (process.env.FREE_TRIAL_OFF === "1") {
-        return NextResponse.json({ error: "The free trial is paused right now." }, { status: 503 });
-      }
-      const email = (req.headers.get(FREE_EMAIL_HEADER) ?? "").trim();
-      if (!looksLikeEmail(email)) {
-        return bad("Enter your email to start your free checks.");
-      }
-      const quota = await spendFreeQuota(email, clientIp(req.headers), "rewrite");
-      if (!quota.ok && quota.hit) {
-        return NextResponse.json({ error: quotaMessage(quota.hit) }, { status: 429 });
-      }
-    }
+    const access = resolveAccess(req.headers.get("x-access-code"));
     if (access.gated && access.reason) {
       return NextResponse.json({ error: "Access code required." }, { status: 401 });
     }

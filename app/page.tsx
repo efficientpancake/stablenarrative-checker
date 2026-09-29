@@ -38,11 +38,6 @@ export default function Landing() {
         <header className={styles.header}>
           <Logo />
           <div className={styles.headerActions}>
-            {/* Three actions, three looks: the trial is lavender, the call is
-                the filled purple one, logging in is the quiet outline. */}
-            <Link href="/app?free=1" className={styles.headerTry}>
-              Try it for free
-            </Link>
             <a
               className={styles.headerBook}
               href={BOOKING_LINK}
@@ -81,14 +76,9 @@ export default function Landing() {
             <p className={styles.signoff} data-enter="5">
               Compliance signs off in one round instead of five.
             </p>
-            <div className={styles.ctaRow} data-enter="6">
-              <BookButton />
-              <Link href="/app?free=1" className={styles.tryFree}>
-                Try it for free
-              </Link>
-            </div>
+            <BookButton enter="6" />
             <span className={styles.ctaNote} data-enter="6">
-              Five free checks, no sign-up. Free while we&apos;re testing.
+              Free while we&apos;re testing.
             </span>
           </div>
 

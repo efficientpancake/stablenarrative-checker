@@ -1,19 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import mammoth from "mammoth";
 import { runCheck, Attachment } from "@/lib/engine";
-import { resolveAccess, resolveFreeTrial } from "@/lib/access";
-import { FREE_EMAIL_HEADER, FREE_HEADER, looksLikeEmail } from "@/lib/freeTrial";
-import { clientIp, quotaMessage, spendFreeQuota } from "@/lib/freeQuota";
+import { resolveAccess } from "@/lib/access";
 import { getMedium } from "@/lib/medium";
 
 export const runtime = "nodejs";
 
 // Sonnet 5 vision accepts these image types.
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-
-/** A long landing-page hero is ~1,500 characters; this bounds a free check
- *  without getting in the way of real copy. */
-const FREE_MAX_CHARS = 3000;
 
 function bad(error: string) {
   return NextResponse.json({ error }, { status: 400 });
@@ -24,11 +18,7 @@ export async function POST(req: NextRequest) {
     // Gate first: the access code (sent as a header) picks this tester's API
     // key. When gated, a missing/wrong code is rejected — never silently run on
     // a default key, so every check is attributed to exactly one tester.
-    // A free-trial visitor has no code: their checks run on StableNarrative's
-    // own key, so they are bounded here (no file uploads, shorter copy) as
-    // well as by the five-check count in the browser.
-    const free = req.headers.get(FREE_HEADER) === "1";
-    const access = free ? resolveFreeTrial() : resolveAccess(req.headers.get("x-access-code"));
+    const access = resolveAccess(req.headers.get("x-access-code"));
     if (access.gated && access.reason) {
       return NextResponse.json({ error: "Access code required." }, { status: 401 });
     }
@@ -81,46 +71,6 @@ export async function POST(req: NextRequest) {
       return bad("Provide marketing copy, a file, or both.");
     }
 
-    // Free-trial limits. A visual check (image or PDF) costs several times a
-    // text one, and long copy costs more again, so the demo is text-only and
-    // capped at a normal promotion's length.
-    if (free) {
-      // Kill switch: set FREE_TRIAL_OFF=1 in Netlify (then redeploy) to stop
-      // serving the trial. Testers with access codes are unaffected.
-      if (process.env.FREE_TRIAL_OFF === "1") {
-        return NextResponse.json(
-          {
-            error:
-              "The free trial is paused right now. Book a 15-minute call and we'll set you up with access.",
-          },
-          { status: 503 }
-        );
-      }
-      const email = (req.headers.get(FREE_EMAIL_HEADER) ?? "").trim();
-      if (!looksLikeEmail(email)) {
-        return bad("Enter your email to start your free checks.");
-      }
-      if (attachment) {
-        return bad(
-          "The free trial checks pasted copy. To check an image or PDF, book a 15-minute setup call."
-        );
-      }
-      if (copy.length > FREE_MAX_CHARS) {
-        return bad(
-          `The free trial checks up to ${FREE_MAX_CHARS} characters at a time. Paste a shorter piece, or book a call to check a full page.`
-        );
-      }
-      // The limit that survives clearing the browser. Counted last, so the
-      // cheap rejections above never burn a visitor's quota.
-      const quota = await spendFreeQuota(email, clientIp(req.headers));
-      if (!quota.ok && quota.hit) {
-        return NextResponse.json({ error: quotaMessage(quota.hit) }, { status: 429 });
-      }
-      if (quota.unavailable) {
-        console.log(JSON.stringify({ evt: "quota_unavailable", at: new Date().toISOString() }));
-      }
-    }
-
     const result = await runCheck(copy, attachment, access.key, medium, mode);
 
     // Central measurement backup — one structured line per check in the server
@@ -131,9 +81,6 @@ export async function POST(req: NextRequest) {
         evt: "check",
         at: new Date().toISOString(),
         tester: access.label ?? "unknown",
-        free,
-        // Whose trial this is, so the log lines can be counted per person.
-        trial_email: free ? (req.headers.get(FREE_EMAIL_HEADER) ?? "").trim() : null,
         medium: medium.id,
         mode,
         verdict: result.overall_verdict,

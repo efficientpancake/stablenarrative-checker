@@ -8,18 +8,6 @@ import { rememberPiece } from "@/lib/outcomeLog";
 import Results, { WeakSpots } from "@/app/components/Results";
 import { CheckMode, MODE_COPY, TRAINING_BRIEF } from "@/lib/trainingMode";
 import { PracticeTally, getTallies, recordRun } from "@/lib/practiceLog";
-import {
-  FREE_EMAIL_HEADER,
-  FREE_HEADER,
-  FREE_LIMIT,
-  clearFreeMode,
-  freeEmail,
-  freeLeft,
-  isFreeMode,
-  looksLikeEmail,
-  recordFreeCheck,
-  setFreeEmail,
-} from "@/lib/freeTrial";
 import ApprovalOutcomes from "@/app/components/ApprovalOutcomes";
 import Rewrites from "@/app/components/Rewrites";
 import { MEDIA, MediumId, DEFAULT_MEDIUM, getMedium } from "@/lib/medium";
@@ -32,9 +20,6 @@ const STORAGE_KEY = "sn_access_code";
 // Deliberately separate from the code: the code unlocks an API key and must
 // never leave this device; the label identifies without granting anything.
 const LABEL_KEY = "sn_access_label";
-
-// Same link as the landing page: where an out-of-checks visitor goes next.
-const BOOKING_LINK = "https://calendly.com/sarah-shaefer-xexw/15-minute-setup-meeting";
 
 const EXAMPLE = `Own uranium on-chain with xU3O8. A safe, guaranteed store of value backed by real assets.
 Don't miss out, get in before the next bull run.`;
@@ -123,19 +108,6 @@ export default function Home() {
   // Access gate. null = still checking; true = unlocked (or app is ungated);
   // false = show the code screen.
   const [unlocked, setUnlocked] = useState<boolean | null>(null);
-  // Free trial: arrived from the landing page's "Try it free" button. No code,
-  // no key of their own, five checks on StableNarrative's key. lib/freeTrial.ts
-  const [free, setFree] = useState(false);
-  const [freeRemaining, setFreeRemaining] = useState(FREE_LIMIT);
-  // The email a trial visitor gives before their first check. Not verified: a
-  // speed bump against casual abuse, and a lead worth following up.
-  const [trialEmail, setTrialEmail] = useState("");
-  const [emailInput, setEmailInput] = useState("");
-  const [firmInput, setFirmInput] = useState("");
-  const [emailError, setEmailError] = useState<string | null>(null);
-  const [emailBusy, setEmailBusy] = useState(false);
-  // Opt-in, off by default: consent has to be given, not withdrawn.
-  const [optIn, setOptIn] = useState(false);
   const [gateInput, setGateInput] = useState("");
   const [gateError, setGateError] = useState<string | null>(null);
   const [gateBusy, setGateBusy] = useState(false);
@@ -143,13 +115,6 @@ export default function Home() {
   // On load, validate any stored code (spends no API tokens). If the app is
   // ungated, the probe returns ok and we unlock immediately.
   useEffect(() => {
-    if (isFreeMode()) {
-      setFree(true);
-      setFreeRemaining(freeLeft());
-      setTrialEmail(freeEmail());
-      setUnlocked(true);
-      return;
-    }
     const stored = localStorage.getItem(STORAGE_KEY);
     (async () => {
       try {
@@ -182,8 +147,6 @@ export default function Home() {
       if (data.ok) {
         localStorage.setItem(STORAGE_KEY, code);
         if (data.label) localStorage.setItem(LABEL_KEY, data.label);
-        clearFreeMode();
-        setFree(false);
         setUnlocked(true);
       } else {
         setGateError(
@@ -264,49 +227,8 @@ export default function Home() {
     startNewCopy();
   }
 
-  async function startTrial(e: React.FormEvent) {
-    e.preventDefault();
-    const email = emailInput.trim();
-    const firm = firmInput.trim();
-    if (!looksLikeEmail(email)) {
-      setEmailError("That doesn't look like an email address.");
-      return;
-    }
-    setEmailBusy(true);
-    setEmailError(null);
-    // Netlify Forms, the same route the support form and the approval outcomes
-    // use (public/__forms.html). A failure here must not block the trial: the
-    // lead is ours to lose, the visitor's time is not.
-    try {
-      await fetch("/__forms.html", {
-        method: "POST",
-        headers: { "content-type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          "form-name": "trial",
-          "bot-field": "",
-          email,
-          firm,
-          marketing: optIn ? "yes" : "no",
-          when: new Date().toISOString(),
-          build: process.env.NEXT_PUBLIC_BUILD ?? "dev",
-        }).toString(),
-      });
-    } catch {
-      /* offline or blocked: carry on, they still get their checks */
-    }
-    setFreeEmail(email);
-    setTrialEmail(email);
-    setEmailBusy(false);
-  }
-
   async function check(textOverride?: string) {
     const text = textOverride ?? copy;
-    if (free && freeLeft() === 0) {
-      setError(
-        "That's your five free checks. Book a 15-minute call and we'll set you up with your own access."
-      );
-      return;
-    }
     setLoading(true);
     setError(null);
     setResult(null);
@@ -318,14 +240,12 @@ export default function Home() {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          ...(free
-            ? { [FREE_HEADER]: "1", [FREE_EMAIL_HEADER]: trialEmail }
-            : { "x-access-code": localStorage.getItem(STORAGE_KEY) ?? "" }),
+          "x-access-code": localStorage.getItem(STORAGE_KEY) ?? "",
         },
         body: JSON.stringify({ copy: text, file, medium, mode }),
       });
       const data = await res.json();
-      if (res.status === 401 && !free) {
+      if (res.status === 401) {
         // Code no longer valid (e.g. rotated) — send them back to the gate.
         localStorage.removeItem(STORAGE_KEY);
         setUnlocked(false);
@@ -333,7 +253,6 @@ export default function Home() {
       }
       if (!res.ok) throw new Error(data.error || "Check failed");
       const checked = data as CheckResult;
-      if (free) setFreeRemaining(recordFreeCheck());
       setResult(checked);
       setCheckedHadAttachment(!!attachment);
       setCheckId((n) => n + 1);
@@ -489,108 +408,7 @@ export default function Home() {
         )}
       </header>
 
-      {free && !trialEmail && (
-        <section className="panel trial-gate">
-          <h2 className="trial-gate-title">
-            Run your first five checks for free. No credit card necessary.
-          </h2>
-          <form onSubmit={startTrial} className="trial-gate-form">
-            <label htmlFor="trial-email">Email</label>
-            <input
-              id="trial-email"
-              type="email"
-              value={emailInput}
-              onChange={(e) => setEmailInput(e.target.value)}
-              placeholder="you@example.com"
-              autoComplete="email"
-              required
-            />
-            <label htmlFor="trial-firm">Company (optional)</label>
-            <input
-              id="trial-firm"
-              type="text"
-              value={firmInput}
-              onChange={(e) => setFirmInput(e.target.value)}
-              placeholder="Where you work"
-              autoComplete="organization"
-            />
-            <label className="trial-gate-check" htmlFor="trial-optin">
-              <input
-                id="trial-optin"
-                type="checkbox"
-                checked={optIn}
-                onChange={(e) => setOptIn(e.target.checked)}
-              />
-              <span>
-                Keep me posted on new features and updates. I can unsubscribe
-                anytime.
-              </span>
-            </label>
-            {emailError && <div className="error">{emailError}</div>}
-            <button type="submit" className="primary" disabled={emailBusy}>
-              {emailBusy && <span className="spinner" />}
-              {emailBusy ? "Starting…" : "Try it out"}
-            </button>
-            <p className="trial-gate-note">
-              We&apos;ll only use your email to follow up about your checks,
-              never for marketing without your explicit permission.
-            </p>
-            <p className="hint">
-              Prefer to talk first?{" "}
-              <a
-                className="foot-link"
-                href={BOOKING_LINK}
-                target="_blank"
-                rel="noopener"
-              >
-                Book a 15-minute call
-              </a>
-              .
-            </p>
-          </form>
-        </section>
-      )}
-
-      {free && trialEmail && (
-        <section className={`free-bar${freeRemaining === 0 ? " free-bar-done" : ""}`}>
-          {freeRemaining > 0 ? (
-            <>
-              <p className="free-bar-text">
-                <strong>Free trial.</strong> {freeRemaining} of {FREE_LIMIT}{" "}
-                {freeRemaining === 1 ? "check" : "checks"} left. Paste real copy:
-                nothing you check here is stored anywhere but this browser.
-              </p>
-              <a
-                className="button-link ghost"
-                href={BOOKING_LINK}
-                target="_blank"
-                rel="noopener"
-              >
-                Book a 15-minute call
-              </a>
-            </>
-          ) : (
-            <>
-              <p className="free-bar-text">
-                <strong>That&apos;s your five free checks.</strong> Book a
-                15-minute call and we&apos;ll set you up with your own access,
-                free while we&apos;re testing.
-              </p>
-              <a
-                className="button-link primary"
-                href={BOOKING_LINK}
-                target="_blank"
-                rel="noopener"
-              >
-                Book a 15-minute call
-              </a>
-            </>
-          )}
-        </section>
-      )}
-
-
-      {free && !trialEmail ? null : training ? (
+      {training ? (
         <>
           <WeakSpots tallies={currentTallies} />
           <section className="training-brief">
@@ -605,7 +423,7 @@ export default function Home() {
             </button>
           </section>
         </>
-      ) : free ? null : (
+      ) : (
         <ApprovalOutcomes
           tick={usageTick}
           activeSessionId={activeSessionId}
@@ -613,7 +431,6 @@ export default function Home() {
         />
       )}
 
-      {!(free && !trialEmail) && (
       <div className="workspace">
         <section className="panel">
           <div className="editor">
@@ -634,11 +451,7 @@ export default function Home() {
               id="copy"
               value={copy}
               onChange={(e) => setCopy(e.target.value)}
-              placeholder={
-                free
-                  ? "Paste the tweet, landing-page hero, ad, or CTA here…"
-                  : "Paste the tweet, landing-page hero, ad, or CTA here, or attach a file below…"
-              }
+              placeholder="Paste the tweet, landing-page hero, ad, or CTA here, or attach a file below…"
               rows={10}
             />
 
@@ -661,12 +474,6 @@ export default function Home() {
               <p className="hint medium-note">{getMedium(medium).note}</p>
             </div>
 
-            {free ? (
-              <p className="hint attach-free-note">
-                The free trial checks pasted copy. Book a call to check an image
-                or a PDF.
-              </p>
-            ) : (
             <div className="attach">
               <input
                 ref={fileInput}
@@ -740,13 +547,12 @@ export default function Home() {
                   : "Word and text files are read as copy; images and PDFs also get a visual-prominence check."}
               </p>
             </div>
-            )}
 
             <div className="actions">
               <button
                 className="primary"
                 onClick={() => check()}
-                disabled={loading || !canCheck || (free && freeRemaining === 0)}
+                disabled={loading || !canCheck}
               >
                 {loading && <span className="spinner" />}
                 {loading ? "Checking…" : "Check compliance"}
@@ -811,8 +617,6 @@ export default function Home() {
         </aside>
       </div>
 
-      )}
-
       {error && <div className="error">Error: {error}</div>}
 
       {result && (
@@ -855,7 +659,7 @@ export default function Home() {
 
       {/* The usage panel measures rounds-to-clean on real copy. Training reps
           aren't part of that measurement. */}
-      {!training && !free && <UsagePanel tick={usageTick} />}
+      {!training && <UsagePanel tick={usageTick} />}
 
       <footer className="foot">
         {training
