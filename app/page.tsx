@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 };
 
 // One place to change the booking link. Both buttons use it.
-const BOOKING_LINK = "https://calendly.com/sarah-shaefer-xexw/15-minute-setup-meeting";
+const BOOKING_LINK = "https://calendly.com/sarah-shaefer-xexw/20-minute-meeting";
 
 function BookButton({ enter }: { enter?: string }) {
   return (
@@ -26,7 +26,7 @@ function BookButton({ enter }: { enter?: string }) {
       rel="noopener"
       data-enter={enter}
     >
-      Book a 15-minute setup call
+      Book a 20-minute call
     </a>
   );
 }
@@ -44,7 +44,7 @@ export default function Landing() {
               target="_blank"
               rel="noopener"
             >
-              Book a 15-minute call
+              Book a 20-minute call
             </a>
             <Link href="/app" className={styles.login}>
               Log in
@@ -97,7 +97,7 @@ export default function Landing() {
                 <ul className={styles.dealList}>
                   <li>Free access for the whole testing phase</li>
                   <li>Every flag explained, with the rule it breaks</li>
-                  <li>A 15-minute call where we run your first check together</li>
+                  <li>A 20-minute call where we run your first check together</li>
                 </ul>
               </div>
               <div className={`${styles.dealBox} ${styles.dealAsk}`}>
@@ -117,7 +117,7 @@ export default function Landing() {
             <h2 className={styles.h2}>How it works</h2>
             <ol className={styles.steps}>
               <li>
-                <span>Book a 15-minute call.</span>
+                <span>Book a 20-minute call.</span>
               </li>
               <li>
                 <span>
