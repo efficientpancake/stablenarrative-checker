@@ -96,12 +96,6 @@
   max-width: 700px;
   padding: 88px 0 72px;
 }
-.eyebrow {
-  display: block;
-  margin: 0 0 18px;
-  font-size: 16px;
-  color: var(--lp-accent-ink);
-}
 .title {
   margin: 0 0 20px;
   font-size: clamp(2rem, 3.6vw, 2.6rem);
@@ -145,12 +139,6 @@
 .cta:hover {
   background: var(--lp-accent-hover);
 }
-.ctaNote {
-  display: block;
-  margin-top: 12px;
-  font-size: 15px;
-  color: var(--lp-muted);
-}
 
 /* ── Sections ────────────────────────────────────────────────────────────── */
 .section {
@@ -169,21 +157,14 @@
   max-width: 40em;
 }
 
-/* The exchange: free access for one piece of feedback. */
 .deal {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  max-width: 820px;
+  max-width: 500px;
 }
 .dealBox {
   background: var(--lp-surface);
   border: 1px solid var(--lp-border);
   border-radius: 14px;
   padding: 24px;
-}
-.dealAsk {
-  border-color: var(--lp-accent);
 }
 .dealLabel {
   font-size: 16px;
@@ -200,17 +181,6 @@
 }
 .dealList li:last-child {
   margin-bottom: 0;
-}
-.askLine {
-  font-size: 19px;
-  font-weight: 600;
-  line-height: 1.35;
-  margin: 0 0 10px;
-}
-.askSmall {
-  color: var(--lp-muted);
-  margin: 0;
-  font-size: 16px;
 }
 
 .steps {
@@ -285,9 +255,6 @@
   }
   .hero {
     padding: 52px 0 48px;
-  }
-  .deal {
-    grid-template-columns: 1fr;
   }
   .cta {
     display: flex;

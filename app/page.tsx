@@ -54,9 +54,6 @@ export default function Landing() {
 
         <main>
           <div className={styles.hero}>
-            <span className={styles.eyebrow} data-enter="0">
-              In early access
-            </span>
             <h1 className={styles.title}>
               <span className={styles.line} data-enter="1">
                 Catch FCA breaches in
@@ -77,19 +74,16 @@ export default function Landing() {
               Compliance signs off in one round instead of five.
             </p>
             <BookButton enter="6" />
-            <span className={styles.ctaNote} data-enter="6">
-              Free while we&apos;re testing.
-            </span>
           </div>
 
           <ProductDemo />
 
           <section className={styles.section} data-reveal>
-            <h2 className={styles.h2}>We&apos;re calibrating it against real sign-offs</h2>
+            <h2 className={styles.h2}>Try it on your own copy</h2>
             <p className={styles.sectionIntro}>
-              We&apos;re looking for marketers at UK crypto firms whose promotions go
-              through compliance approval. You&apos;ll be able to use our proprietary
-              tool for free on real campaigns.
+              Struggling with FCA rules on crypto marketing? If you&apos;re a
+              marketer dealing with UK crypto promotions, book a call to try it
+              out.
             </p>
             <div className={styles.deal}>
               <div className={styles.dealBox}>
@@ -99,16 +93,6 @@ export default function Landing() {
                   <li>Every flag explained, with the rule it breaks</li>
                   <li>A 20-minute call where we run your first check together</li>
                 </ul>
-              </div>
-              <div className={`${styles.dealBox} ${styles.dealAsk}`}>
-                <h3 className={styles.dealLabel}>We ask</h3>
-                <p className={styles.askLine}>
-                  After sign-off, tell us whether your copy was approved.
-                </p>
-                <p className={styles.askSmall}>
-                  That&apos;s it. Your copy is yours, and the approval decision stays
-                  with your firm.
-                </p>
               </div>
             </div>
           </section>
@@ -126,8 +110,8 @@ export default function Landing() {
               </li>
               <li>
                 <span>
-                  Use it on your next campaign, then tell us what your approver
-                  said.
+                  Use it on your next campaign, and watch your approval rounds
+                  disappear.
                 </span>
               </li>
             </ol>
@@ -138,7 +122,7 @@ export default function Landing() {
               Spend less time going back and forth with compliance
             </h2>
             <p className={styles.sectionIntro}>
-              Limited spots, so we can speak to every tester personally.
+              We speak to every tester personally.
             </p>
             <BookButton />
           </section>
