@@ -92,6 +92,10 @@ export default function Landing() {
                   <li>Free access for the whole testing phase</li>
                   <li>Every flag explained, with the rule it breaks</li>
                   <li>A 20-minute call where we run your first check together</li>
+                  <li>
+                    Every decision recorded, with the rule and your reasoning,
+                    exportable as a CSV
+                  </li>
                 </ul>
               </div>
             </div>
